@@ -1,0 +1,3 @@
+PASS: python -m compileall -q web worker scripts
+PASS: node --check web/app/static/*.js and web/app/static/js/*.js (each file individually)
+Scope: syntax/byte-compilation only, not a clean dependency installation.

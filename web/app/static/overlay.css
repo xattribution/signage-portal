@@ -1,0 +1,13 @@
+/* Shared by the stream player and its editor preview. Size is relative to the screen. */
+.signage-overlay-root { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:20; font-family:system-ui,-apple-system,"Segoe UI",sans-serif; }
+.signage-overlay-root * { box-sizing:border-box; }
+.signage-ribbon { position:absolute; left:0; right:0; display:flex; align-items:center; gap:1.2%; padding:0 2.4%; overflow:hidden; font-weight:650; line-height:1.15; isolation:isolate; }
+.signage-ribbon[hidden], .signage-overlay-root [hidden] { display:none !important; }
+.signage-ribbon-top { top:0; }
+.signage-ribbon-bottom { bottom:0; }
+.signage-ribbon-bg { position:absolute; inset:0; z-index:-1; }
+.signage-ribbon-image { flex:0 0 auto; height:76%; max-width:22%; object-fit:contain; }
+.signage-ribbon-window { position:relative; display:flex; align-items:center; min-width:0; height:100%; flex:1; overflow:hidden; }
+.signage-ribbon-text { display:block; min-width:0; width:100%; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; font-variant-numeric:tabular-nums; }
+.signage-ribbon-text.is-ticker { position:relative; flex:none; width:max-content; max-width:none; overflow:visible; text-overflow:clip; will-change:transform; }
+.signage-screensaver-art { position:absolute; object-fit:contain; max-height:30%; }

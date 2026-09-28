@@ -1,0 +1,11 @@
+{
+  "scope": "Offline DOM regression checks for workspace freshness; no real network is used.",
+  "checks": {
+    "first_load_failure_visible_and_mobile_fits": true,
+    "first_load_retry_recovers": true,
+    "automatic_backoff_retry_recovers_without_user_action": true,
+    "abort_deadline_keeps_previous_snapshot": true,
+    "not_modified_cannot_initialize_missing_snapshot": true
+  },
+  "page_errors": []
+}

@@ -1,0 +1,31 @@
+# Optional isolated relay, deployed separately from the portal.
+# Choose and scan a pinned MediaMTX image; never mount the portal DB or NAS here.
+services:
+  relay:
+    image: ${MEDIAMTX_IMAGE:?Set an approved bluenviron/mediamtx image tag or digest}
+    user: "1000:1000"
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    ports:
+      - "127.0.0.1:8888:8888"
+    volumes:
+      - type: bind
+        source: ${RELAY_CONFIG:?Set the absolute path to your relay config}
+        target: /mediamtx.yml
+        read_only: true
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:size=128m,noexec,nosuid,nodev
+    mem_limit: 512m
+    cpus: 1
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "3"}
+    networks: [relay-egress]
+networks:
+  relay-egress: {}

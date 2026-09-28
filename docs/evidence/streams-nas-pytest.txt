@@ -1,0 +1,5 @@
+...............................................s........................ [ 69%]
+...............................                                          [100%]
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_security.py:55: Legacy migration requires bcrypt wheel unavailable in this environment
+102 passed, 1 skipped in 13.13s

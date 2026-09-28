@@ -1,0 +1,21 @@
+{
+  "base": "signage-portal-overlays.zip",
+  "changed_existing_production_files": [
+    {
+      "path": "web/app/static/admin.css",
+      "before_sha256": "164e27db0ab3ceca03d703a229547f18c410d3e7823eb45f51a5cbf1c152875b",
+      "after_sha256": "85728c267e793d9fef508177317008645bb6b703dd07c7c633b013ececd4d2e3"
+    },
+    {
+      "path": "web/app/static/admin.html",
+      "before_sha256": "6abc8d6b4fc67213ccb2958d98f3d58f58fafcdddd739661b46bbc5f60539dc2",
+      "after_sha256": "81b762c31982fb713216bc7ada5e3b0f367be8067bab7185a3574f3ce853e16e"
+    },
+    {
+      "path": "web/app/static/admin.js",
+      "before_sha256": "2b09f9da3a4e9b794af3a725e8c9c0750fb449855484d6543a27a320d510ac78",
+      "after_sha256": "a94b389158c3f218be7cd3b591ff54d4556e1306ad0d96bb796fa5f97a6a5bc0"
+    }
+  ],
+  "backend_worker_player_and_deployment_byte_identical": true
+}

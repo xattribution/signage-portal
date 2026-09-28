@@ -1,0 +1,36 @@
+# Configure input here, not in player URLs. This file may contain upstream secrets.
+# Owner root, group 1000, mode 0640. Never commit real credentials.
+# A dedicated egress firewall must restrict this service to approved inputs.
+logLevel: warn
+api: false
+metrics: false
+pprof: false
+playback: false
+rtsp: false
+rtmp: false
+webrtc: false
+srt: false
+hls: true
+hlsAddress: :8888
+hlsAllowOrigins: ["https://play.signage.example.org"]
+hlsVariant: mpegts
+hlsSegmentCount: 7
+hlsSegmentDuration: 2s
+hlsSegmentMaxSize: 20M
+hlsAlwaysRemux: false
+authMethod: internal
+authInternalUsers:
+  - user: any
+    ips: []
+    permissions:
+      - action: read
+        path: office-live
+paths:
+  office-live:
+    # H.264 / AAC recommended. This relay does NOT transcode incompatible codecs.
+    source: rtsp://192.0.2.50:554/stream
+    rtspTransport: tcp
+    sourceOnDemand: true
+    sourceOnDemandStartTimeout: 15s
+    sourceOnDemandCloseAfter: 15s
+    maxReaders: 20

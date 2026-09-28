@@ -1,0 +1,12 @@
+[Unit]
+Description=Retry signage startup when NAS becomes available after boot
+
+[Timer]
+OnBootSec=30s
+OnCalendar=*-*-* *:*:00,30
+Persistent=true
+AccuracySec=1s
+Unit=signage.service
+
+[Install]
+WantedBy=timers.target

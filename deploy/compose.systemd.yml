@@ -1,0 +1,6 @@
+# systemd owns restarts so Docker cannot race ahead of NAS mounts at boot.
+services:
+  web:
+    restart: "no"
+  worker:
+    restart: "no"

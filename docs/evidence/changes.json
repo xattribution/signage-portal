@@ -1,0 +1,222 @@
+[
+  {
+    "path": ".dockerignore",
+    "status": "modified"
+  },
+  {
+    "path": ".env.example",
+    "status": "modified"
+  },
+  {
+    "path": ".gitignore",
+    "status": "added"
+  },
+  {
+    "path": "README.md",
+    "status": "modified"
+  },
+  {
+    "path": "deploy/nginx.example.conf",
+    "status": "added"
+  },
+  {
+    "path": "docker-compose.yml",
+    "status": "modified"
+  },
+  {
+    "path": "docs/AUDIT.md",
+    "status": "added"
+  },
+  {
+    "path": "docs/TESTING.md",
+    "status": "added"
+  },
+  {
+    "path": "docs/UPGRADING.md",
+    "status": "added"
+  },
+  {
+    "path": "docs/evidence/browser-check.json",
+    "status": "added"
+  },
+  {
+    "path": "docs/evidence/conversion-results.json",
+    "status": "added"
+  },
+  {
+    "path": "docs/evidence/local-environment.json",
+    "status": "added"
+  },
+  {
+    "path": "docs/evidence/pytest.txt",
+    "status": "added"
+  },
+  {
+    "path": "docs/evidence/pytest.xml",
+    "status": "added"
+  },
+  {
+    "path": "docs/previews/dark.png",
+    "status": "added"
+  },
+  {
+    "path": "docs/previews/displays.png",
+    "status": "added"
+  },
+  {
+    "path": "docs/previews/library.png",
+    "status": "added"
+  },
+  {
+    "path": "docs/previews/login.png",
+    "status": "added"
+  },
+  {
+    "path": "docs/previews/mobile.png",
+    "status": "added"
+  },
+  {
+    "path": "docs/previews/streams.png",
+    "status": "added"
+  },
+  {
+    "path": "pyproject.toml",
+    "status": "added"
+  },
+  {
+    "path": "requirements-dev.txt",
+    "status": "added"
+  },
+  {
+    "path": "scripts/check.sh",
+    "status": "added"
+  },
+  {
+    "path": "scripts/release-check.sh",
+    "status": "added"
+  },
+  {
+    "path": "scripts/ui-dom-check.py",
+    "status": "added"
+  },
+  {
+    "path": "tests/conftest.py",
+    "status": "added"
+  },
+  {
+    "path": "tests/test_media_and_api.py",
+    "status": "added"
+  },
+  {
+    "path": "tests/test_security.py",
+    "status": "added"
+  },
+  {
+    "path": "web/.dockerignore",
+    "status": "modified"
+  },
+  {
+    "path": "web/Dockerfile",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/auth/__init__.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/auth/cloudflare.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/auth/local.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/config.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/db.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/jobs.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/main.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/playlist.py",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/schemas.py",
+    "status": "added"
+  },
+  {
+    "path": "web/app/security.py",
+    "status": "added"
+  },
+  {
+    "path": "web/app/static/admin.css",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/static/admin.html",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/static/admin.js",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/static/js/api.js",
+    "status": "added"
+  },
+  {
+    "path": "web/app/static/js/ui.js",
+    "status": "added"
+  },
+  {
+    "path": "web/app/static/login.html",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/static/login.js",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/static/player.css",
+    "status": "added"
+  },
+  {
+    "path": "web/app/static/player.html",
+    "status": "modified"
+  },
+  {
+    "path": "web/app/static/player.js",
+    "status": "modified"
+  },
+  {
+    "path": "web/requirements.txt",
+    "status": "modified"
+  },
+  {
+    "path": "worker/.dockerignore",
+    "status": "modified"
+  },
+  {
+    "path": "worker/Dockerfile",
+    "status": "modified"
+  },
+  {
+    "path": "worker/convert.py",
+    "status": "modified"
+  },
+  {
+    "path": "worker/requirements.txt",
+    "status": "modified"
+  }
+]

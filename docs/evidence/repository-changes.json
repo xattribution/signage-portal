@@ -1,0 +1,14 @@
+{
+  "baseline": "Supplied signage-portal-topnav.zip imported as local Git baseline",
+  "production_changes": [
+    "web/app/static/admin.css",
+    "web/app/static/admin.html",
+    "web/app/static/admin.js",
+    "web/app/static/js/ui.js"
+  ],
+  "backend_routes_changed": false,
+  "schema_changed": false,
+  "playback_urls_changed": false,
+  "unifi_integration_added": false,
+  "remote_published": false
+}

@@ -1,0 +1,10 @@
+{
+  "channel_endpoint": true,
+  "single_live_feed_not_rewound_or_recreated": true,
+  "hls_child_origin_guard": true,
+  "hls_destroy_on_switch": true,
+  "iframe_sandbox": true,
+  "deleted_channel_clears_content": true,
+  "page_errors": [],
+  "scope": "offline DOM, mocked HLS engine and manifest; no decoding/network/physical hardware assertion"
+}

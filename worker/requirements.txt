@@ -1,0 +1,3 @@
+Pillow==12.3.0
+CairoSVG==2.9.1
+defusedxml==0.7.1

@@ -1,0 +1,97 @@
+# One web instance and one worker. Keep media on a dedicated, quota-limited NAS share.
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  restart: unless-stopped
+  init: true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  web:
+    <<: *hardening
+    build: ./web
+    image: signage-web:modern
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      MEDIA_DIR: /media
+    ports:
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:8080"
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:-./data}
+        target: /data
+        read_only: false
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SPOOL_ROOT:-./spool}
+        target: /spool
+        read_only: false
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/originals
+        target: /media/originals
+        read_only: false
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/work
+        target: /media/work
+        read_only: false
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/rendered
+        target: /media/rendered
+        read_only: false
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:size=64m,noexec,nosuid,nodev
+    pids_limit: 200
+    mem_limit: 768m
+    cpus: 2
+    networks: [front]
+
+  worker:
+    <<: *hardening
+    build: ./worker
+    image: signage-worker:modern
+    network_mode: none
+    environment:
+      ORIGINALS_DIR: /media/originals
+      WORK_DIR: /media/work
+      REQUIRE_MEDIA_MARKERS: ${REQUIRE_MEDIA_MARKERS:-false}
+      MEDIA_VOLUME_ID: ${MEDIA_VOLUME_ID:-}
+      CONVERT_MEM_MB: ${CONVERT_MEM_MB:-3072}
+      CONVERT_CPU_SECONDS: ${CONVERT_CPU_SECONDS:-3600}
+      CONVERT_WALL_SECONDS: ${CONVERT_WALL_SECONDS:-3600}
+      CONVERT_MAX_OUTPUT_MB: ${MAX_INGEST_MB:-8192}
+    volumes:
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/originals
+        target: /media/originals
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/work
+        target: /media/work
+        read_only: false
+        bind:
+          create_host_path: false
+    tmpfs:
+      - /tmp:size=4g,noexec,nosuid,nodev,mode=1777
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 2
+
+networks:
+  front: {}

@@ -1,0 +1,8 @@
+{
+  "page_errors": [],
+  "dialog_focus_trapped": true,
+  "mobile_overflow": false,
+  "create_stream": true,
+  "network_error_recovery": true,
+  "transport": "offline DOM + real local HTTP API bridge"
+}

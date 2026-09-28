@@ -1,0 +1,22 @@
+[Unit]
+Description=Office signage with verified persistent NAS storage
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+RequiresMountsFor=/mnt/signage-media /mnt/signage-library
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/signage
+ExecStartPre=/usr/bin/python3 /opt/signage/scripts/storage-preflight.py /etc/signage/storage.json
+ExecStart=/usr/bin/docker compose --project-name signage -f docker-compose.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml up --no-build --pull never --force-recreate --abort-on-container-exit
+ExecStop=/usr/bin/docker compose --project-name signage -f docker-compose.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml stop --timeout 30
+Restart=always
+RestartSec=15
+TimeoutStartSec=120
+TimeoutStopSec=45
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

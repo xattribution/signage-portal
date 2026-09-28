@@ -1,0 +1,39 @@
+{
+  "scope": "Check the delivered navigation against the offline workspace preview.\n\nThis verifies DOM/layout/interaction in Chromium, not a UniFi, NAS, TLS or CSP\nintegration. The separate regression and overlay suites exercise the real API.",
+  "checks": {
+    "single_header_no_sidebar_no_duplicate_utilities": true,
+    "all_five_views_navigate": true,
+    "sample_assignment_keeps_display_url_and_shows_integration_boundary": true,
+    "theme_cycle": true,
+    "responsive_matrix": {
+      "widths": [
+        1920,
+        1440,
+        1280,
+        1180,
+        1024,
+        901,
+        900,
+        768,
+        600,
+        480,
+        390,
+        360,
+        320
+      ],
+      "views": 5,
+      "overflow": false
+    },
+    "mobile_keyboard_focus_escape_and_selection": true,
+    "account_escape_outside_click_and_no_navigation_focus_trap": true,
+    "focus_recovers_across_breakpoint": true,
+    "long_workspace_and_account_names_fit": true,
+    "stream_creation_and_banner_editor_in_new_shell": true,
+    "offline_playback_illustration_opens": true,
+    "workspace_failure_visible_retry_recovers_focus": true,
+    "browser_offline_and_online_recovery": true,
+    "malformed_200_response_keeps_last_valid_workspace": true,
+    "not_modified_response_preserves_state_without_false_warning": true
+  },
+  "page_errors": []
+}

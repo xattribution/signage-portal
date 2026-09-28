@@ -1,0 +1,7 @@
+[
+  {"path":"/mnt/signage-media/originals","source":"nas.example.org:/volume1/signage","volume_id":"replace-with-your-own-media-volume-id"},
+  {"path":"/mnt/signage-media/work","source":"nas.example.org:/volume1/signage","volume_id":"replace-with-your-own-media-volume-id"},
+  {"path":"/mnt/signage-media/rendered","source":"nas.example.org:/volume1/signage","volume_id":"replace-with-your-own-media-volume-id"},
+  {"path":"/mnt/signage-library/incoming","source":"nas.example.org:/volume1/office-content","volume_id":"replace-with-your-own-library-volume-id"},
+  {"path":"/mnt/signage-library/outgoing","source":"nas.example.org:/volume1/office-content","volume_id":"replace-with-your-own-library-volume-id"}
+]

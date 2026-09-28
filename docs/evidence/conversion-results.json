@@ -1,0 +1,20 @@
+{
+  "9": {
+    "name": "two-seconds.mp4",
+    "status": "ready",
+    "slides": 1,
+    "error": null
+  },
+  "8": {
+    "name": "two-slides.pptx",
+    "status": "ready",
+    "slides": 2,
+    "error": null
+  },
+  "7": {
+    "name": "two-pages.pdf",
+    "status": "ready",
+    "slides": 2,
+    "error": null
+  }
+}

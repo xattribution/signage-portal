@@ -1,0 +1,22 @@
+{
+  "python": "3.13.5 (main, Jul 15 2026, 20:25:40) [GCC 14.2.0]",
+  "packages": {
+    "fastapi": "0.128.2",
+    "starlette": "0.50.0",
+    "uvicorn": "0.48.0",
+    "python-multipart": "0.0.29",
+    "argon2-cffi": "25.1.0",
+    "PyJWT": "2.13.0",
+    "cryptography": "46.0.4",
+    "Pillow": "12.3.0",
+    "pytest": "9.0.2",
+    "httpx": "0.28.1",
+    "playwright": "1.57.0"
+  },
+  "missing": [
+    "bcrypt",
+    "pip-audit",
+    "Docker daemon"
+  ],
+  "note": "Local test environment; not the delivered release dependency set."
+}

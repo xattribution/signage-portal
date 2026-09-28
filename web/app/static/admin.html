@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>Signage</title><link rel="icon" href="/static/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/admin.css"><link rel="stylesheet" href="/static/overlay.css"><script src="/static/overlay.js"></script><script type="module" src="/static/admin.js"></script></head>
+<body>
+<a class="skip" href="#main">Skip to workspace</a>
+<header class="topbar" id="app-header">
+  <a class="brand" href="/" aria-label="Workspace home"><span class="mark" aria-hidden="true"></span><span id="site-name">Signage</span></a>
+  <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="tabs" aria-label="Workspace navigation, current page: Streams"><span id="view-label">Streams</span><span class="chevron" aria-hidden="true"></span></button>
+  <nav id="tabs" aria-label="Workspace">
+    <button type="button" data-view="streams" class="active" aria-current="page">Streams</button>
+    <button type="button" data-view="library">Library<span class="nav-count" id="library-count"></span></button>
+    <button type="button" data-view="displays">Displays</button>
+    <button type="button" data-view="activity">Activity</button>
+    <button type="button" data-view="users" id="tab-users" hidden>Users</button>
+  </nav>
+  <div class="header-actions">
+    <button class="icon-btn" id="refresh-now" type="button" aria-label="Refresh workspace" title="Refresh workspace" aria-busy="false"></button>
+    <button id="theme-toggle" class="icon-btn" type="button" aria-label="Change theme" title="Change theme"></button>
+    <details class="account-menu" id="account-menu">
+      <summary aria-label="Account" title="Account"><span class="avatar" id="avatar" aria-hidden="true">—</span><span id="me">Account</span><span class="chevron" aria-hidden="true"></span></summary>
+      <div class="account-panel"><span class="account-provider" id="auth-provider">Workspace account</span><button class="signout" id="signout" type="button">Sign out <span aria-hidden="true">↗</span></button></div>
+    </details>
+  </div>
+</header>
+<div class="workspace">
+  <main id="main" tabindex="-1">
+    <div class="workspace-notice" id="connection-banner" hidden>
+      <div role="alert" aria-atomic="true"><strong id="workspace-notice-title"></strong><p id="workspace-notice-detail"></p></div>
+      <button class="btn small" id="retry-workspace" type="button">Retry now</button>
+    </div>
+    <section id="view-streams" class="view active" aria-labelledby="streams-title">
+      <div class="page-head"><div><div class="eyebrow">LIVE WORKSPACE</div><h1 id="streams-title">Streams</h1><p>Arrange the rotation. Keep your displays in step.</p></div><div class="page-actions"><button class="btn" id="btn-override-all">Override all</button><button class="btn primary" id="btn-new-stream">＋ New stream</button></div></div>
+      <div class="board-status"><span id="display-summary">Loading display status…</span><span id="stream-summary"></span><span class="spacer"></span><button class="link" id="manage-displays">Manage displays <span aria-hidden="true">↗</span></button></div>
+      <div id="streams" class="streams" aria-live="off"><div class="loading">Loading your workspace…</div></div>
+      <div id="tray" class="tray"></div>
+    </section>
+    <section id="view-library" class="view" aria-labelledby="library-title">
+      <div class="page-head"><div><div class="eyebrow">CONTENT</div><h1 id="library-title">Library</h1><p>Files, shared folders and live sources. One library.</p></div><div class="page-actions"><button class="btn" id="btn-shares">Shared folders</button><button class="btn" id="btn-graphic">Add graphic</button><input id="graphic-input" type="file" accept=".png,.svg,.gif" multiple hidden><button class="btn" id="btn-source">Add URL</button><button class="btn primary" id="btn-upload">↑ Upload content</button><input id="file-input" type="file" multiple hidden></div></div>
+      <div class="library-toolbar"><label class="search"><span class="sr-only">Search content</span><input id="lib-filter" type="search" placeholder="Search the library…"></label><label class="sr-only" for="lib-kind">Content type</label><select id="lib-kind"><option value="">All content</option><option value="image">Images</option><option value="graphic">Graphics &amp; logos</option><option value="deck">Slide decks</option><option value="video">Videos</option><option value="feed">URLs &amp; live feeds</option></select><span class="spacer"></span><span id="worker-down" class="warn-text" hidden>Converter offline · uploads will wait</span></div>
+      <button id="dropzone" class="dropzone" type="button"><span class="upload-symbol" aria-hidden="true">↑</span><span><strong>Drop content here, or browse files</strong><span class="m">Images, video, presentations &amp; PDF</span></span><span class="upload-limit" id="upload-limit"></span></button>
+      <div id="upload-queue" aria-live="polite"></div><div id="transfers" class="transfer-panel" hidden></div><div id="library" class="library"></div>
+    </section>
+    <section id="view-displays" class="view" aria-labelledby="displays-title">
+      <div class="page-head"><div><div class="eyebrow">PLAYBACK DESTINATIONS</div><h1 id="displays-title">Displays</h1><p>One permanent address. Change the assignment here.</p></div><button class="btn primary" id="btn-new-display">＋ Add display</button></div>
+      <div id="displays" class="display-grid"></div><p class="note">Set each player to Web mode and paste its display URL once. Rename the display or change its assigned stream here; its playback address stays the same. This portal controls playback, not the UniFi console. Device adoption, power, volume and firmware remain in UniFi Connect.</p>
+    </section>
+    <section id="view-activity" class="view" aria-labelledby="activity-title"><div class="page-head"><div><div class="eyebrow">HISTORY</div><h1 id="activity-title">Activity</h1><p>A record of changes to your workspace.</p></div><button class="btn" id="refresh-activity">Refresh log</button></div><div class="table-wrap"><table class="grid" id="activity"><caption class="sr-only">Workspace activity</caption></table></div></section>
+    <section id="view-users" class="view" aria-labelledby="users-title"><div class="page-head"><div><div class="eyebrow">ACCESS</div><h1 id="users-title">Users</h1><p>Every account has full administrative access.</p></div><button class="btn primary" id="btn-new-user">＋ Add user</button></div><div class="table-wrap"><table class="grid" id="users"><caption class="sr-only">Administrator accounts</caption></table></div></section>
+    <footer class="workspace-footer"><span>Times shown in your browser’s time zone.</span><span id="workspace-date"></span></footer>
+  </main>
+</div>
+<div id="modal-root"></div><div id="toasts" aria-live="polite" aria-atomic="false"></div><div id="tip" role="tooltip"></div>
+</body></html>

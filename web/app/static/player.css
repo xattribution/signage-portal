@@ -1,0 +1,22 @@
+
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; cursor: none; }
+  #stage { position: fixed; inset: 0; }
+  #stage > * {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000;
+    opacity: 0; transition: opacity var(--fade, 500ms) linear;
+  }
+  #stage > .on { opacity: 1; }
+  #clock {
+    position: fixed; display: none; color: #d8dce2; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    text-align: left; transition: left 2s ease, top 2s ease; white-space: nowrap;
+  }
+  #clock .t { font-size: 14vh; font-weight: 200; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  #clock .d { font-size: 3.6vh; color: #7d8590; margin-top: 1.4vh; letter-spacing: .04em; }
+  #msg {
+    position: fixed; left: 0; right: 0; bottom: 24px; text-align: center; color: #555;
+    font: 18px system-ui, sans-serif; display: none;
+  }
+
+@media (prefers-reduced-motion: reduce) { #stage > *, #clock { transition: none; } }
+
+#stage > iframe { border: 0; pointer-events: none; }

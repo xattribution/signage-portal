@@ -1,0 +1,16 @@
+{
+  "scope": "offline Chromium DOM; real in-process FastAPI API; synthetic time and media transport. No native network/CSP/TLS or physical-device assertion.",
+  "draft_cancel_and_persisted_countdown": true,
+  "preset_saved_and_old_dates_cleared_on_load": true,
+  "mobile_no_horizontal_overflow_and_focus_contained": true,
+  "actual_ticker_transform_and_reserved_content_space": true,
+  "plain_text_no_dom_injection_and_image_not_restarted": true,
+  "overlay_edit_keeps_existing_video_element": true,
+  "absolute_countdown_and_banner_expiry_while_offline": true,
+  "reduced_motion_disables_ticker": true,
+  "4k_proportional_ribbon_height": true,
+  "slide_transition_duration_and_outgoing_cleanup": true,
+  "gif_load_and_playlist_reduced_motion_poster": true,
+  "screensaver_clock_artwork": true,
+  "page_errors": []
+}

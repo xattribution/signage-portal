@@ -1,0 +1,4 @@
+[
+  {"id":"incoming","name":"Office content","path":"/shares/incoming","volume_id":"replace-with-your-own-library-volume-id","read_only":true,"require_network":true},
+  {"id":"outgoing","name":"Library exports","path":"/shares/outgoing","volume_id":"replace-with-your-own-library-volume-id","read_only":false,"require_network":true}
+]

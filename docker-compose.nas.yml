@@ -1,0 +1,25 @@
+# Optional NAS browser. The worker NEVER mounts these folders or credentials.
+# Combine with docker-compose.yml. Mount SMB/NFS on the host first.
+services:
+  web:
+    environment:
+      SHARES_CONFIG: /etc/signage/shares.json
+    volumes:
+      - type: bind
+        source: ${SHARES_CONFIG_HOST:?Set SHARES_CONFIG_HOST}
+        target: /etc/signage/shares.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SHARE_INCOMING_ROOT:?Set SHARE_INCOMING_ROOT}
+        target: /shares/incoming
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SHARE_OUTGOING_ROOT:?Set SHARE_OUTGOING_ROOT}
+        target: /shares/outgoing
+        read_only: false
+        bind:
+          create_host_path: false

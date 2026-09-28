@@ -1,0 +1,16 @@
+* text=auto
+*.py text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
+*.service text eol=lf
+*.timer text eol=lf
+*.sha256 text eol=lf
+*.png binary
+*.jpg binary
+*.gif binary
