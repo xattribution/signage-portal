@@ -4,6 +4,6 @@ pytest==9.0.2
 # Starlette 1.7 uses HTTPX2 for TestClient.
 httpx2==2.13.1
 httpx==0.28.1
-playwright==1.57.0
+playwright==1.63.0
 python-pptx==1.0.2
 reportlab==4.4.9
