@@ -1,6 +1,6 @@
 -r web/requirements.txt
 -r worker/requirements.txt
-pytest==9.0.2
+pytest==9.1.1
 # Starlette 1.7 uses HTTPX2 for TestClient.
 httpx2==2.13.1
 httpx==0.28.1
