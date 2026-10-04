@@ -20,3 +20,17 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    # requirements-dev.txt includes web/ and worker/ requirements via -r, so this
+    # entry would re-raise their bumps as duplicates. Those are owned by the
+    # /web and /worker entries above; this one only tracks dev/test tooling.
+    ignore:
+      - dependency-name: fastapi
+      - dependency-name: starlette
+      - dependency-name: uvicorn
+      - dependency-name: python-multipart
+      - dependency-name: argon2-cffi
+      - dependency-name: bcrypt
+      - dependency-name: pyjwt
+      - dependency-name: pillow
+      - dependency-name: cairosvg
+      - dependency-name: defusedxml
