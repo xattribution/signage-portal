@@ -98,7 +98,8 @@ def host_allowed(hostname: str | None) -> bool:
 
 
 def validate() -> None:
-    if ("none" in AUTH_MODE or "*" in ALLOWED_HOSTS or not (COOKIE_SECURE or COOKIE_AUTO)) and not ALLOW_INSECURE_DEV:
+    # AUTH_MODE=none is a supported, explicit choice (sign-in handled elsewhere); it is never the default.
+    if ("*" in ALLOWED_HOSTS or not (COOKIE_SECURE or COOKIE_AUTO)) and not ALLOW_INSECURE_DEV:
         raise RuntimeError("Insecure settings require ALLOW_INSECURE_DEV=true. Use TLS and explicit hosts in production.")
     if "*" in _list("FORWARDED_ALLOW_IPS"):
         raise RuntimeError("FORWARDED_ALLOW_IPS must name trusted proxy addresses, never '*'.")

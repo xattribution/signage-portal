@@ -23,7 +23,7 @@ For a systemd-managed deployment:
 ```sh
 sudo systemctl status signage.service signage.timer
 sudo journalctl -u signage.service --since today
-cd /opt/signage
+cd ~/signage
 sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.host-storage.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml logs --tail=200 web worker
 ```
 
@@ -44,7 +44,7 @@ With systemd managing the service:
 ```sh
 sudo systemctl stop signage.timer signage.service
 # Take a consistent backup; install/review the next source revision.
-cd /opt/signage
+cd ~/signage
 sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.host-storage.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml build --pull
 sudo python3 scripts/storage-preflight.py /etc/signage/storage.json
 sudo systemctl start signage.timer signage.service

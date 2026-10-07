@@ -9,6 +9,9 @@
 #
 # After the first install the same commands are available as `sudo signage <command>`.
 #
+# The portal installs to ~/signage for the user who runs sudo (an existing /opt/signage
+# install keeps working). Set SIGNAGE_DIR to choose another folder.
+#
 # Backups hold the database (accounts, settings, streams, displays, sessions), the secret key,
 # uploaded and converted media, .env, /etc/signage (NAS shares, storage checks, credentials)
 # and the systemd units. They work for both the Docker-volume quick start and the
@@ -17,7 +20,21 @@ set -Eeuo pipefail
 
 REPO="${SIGNAGE_REPO:-xattribution/signage-portal}"
 REF="${SIGNAGE_REF:-main}"
-DIR="${SIGNAGE_DIR:-/opt/signage}"
+# Who ran sudo: the install folder lives in that user's home and the code belongs to them.
+OWNER="${SUDO_USER:-}"
+[ "$OWNER" = "root" ] && OWNER=""
+OWNER_HOME="$( { [ -n "$OWNER" ] && getent passwd "$OWNER" | cut -d: -f6; } || true)"
+OWNER_HOME="${OWNER_HOME:-$HOME}"
+SELF="$(readlink -f "${BASH_SOURCE[0]:-}" 2>/dev/null || true)"
+if [ -n "${SIGNAGE_DIR:-}" ]; then
+  DIR="$SIGNAGE_DIR"
+elif [ -f "$SELF" ] && [ -f "$(dirname "$SELF")/docker-compose.yml" ]; then
+  DIR="$(dirname "$SELF")"            # `sudo signage ...` manages the copy it belongs to
+elif [ -f /opt/signage/docker-compose.yml ] && [ ! -e "$OWNER_HOME/signage" ]; then
+  DIR=/opt/signage                    # earlier installs used /opt/signage
+else
+  DIR="$OWNER_HOME/signage"
+fi
 BACKUP_DIR="${SIGNAGE_BACKUP_DIR:-/var/backups/signage}"
 PROJECT="signage"
 LINK="/usr/local/bin/signage"
@@ -106,6 +123,9 @@ fetch_code() {
   tar -xzf "$tmp/src.tar.gz" -C "$new" --strip-components=1
   rm -rf "$tmp"
   [ -f "$new/docker-compose.yml" ] || die "The download does not look like the signage portal."
+  # The code belongs to the user who ran sudo, so .env can be edited without sudo.
+  # Carried-over items (below) keep their own ownership; data folders stay as they are.
+  [ -n "$OWNER" ] && chown -R "$OWNER": "$new"
   if [ -d "$DIR" ]; then
     local item name
     for item in "$DIR"/* "$DIR"/.[!.]*; do

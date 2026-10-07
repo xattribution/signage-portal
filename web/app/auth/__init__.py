@@ -17,10 +17,12 @@ from .local import LocalAuth
 
 
 class NoAuth(AuthProvider):
+    """Login-free mode (AUTH_MODE=none): access control is handled outside the portal,
+    for example by a reverse proxy, Cloudflare Access or network segmentation."""
     name = "none"
 
     def identify(self, request: Request) -> Principal:
-        return Principal(username="anonymous", provider=self.name)
+        return Principal(username="open-access", provider=self.name)
 
 
 PROVIDERS: dict[str, type[AuthProvider]] = {
@@ -39,7 +41,8 @@ def init() -> None:
             raise RuntimeError(f"Unknown AUTH_MODE '{mode}'. Options: {', '.join(PROVIDERS)}")
         chain.append(PROVIDERS[mode]())
     if any(p.name == "none" for p in chain):
-        print("[auth] WARNING: AUTH_MODE=none — the admin portal is open to anyone who can reach it.", flush=True)
+        print("[auth] Login-free mode (AUTH_MODE=none): anyone who can reach this portal can manage it. "
+              "Control access in front of it.", flush=True)
 
 
 def identify(request: Request) -> tuple[Principal | None, AuthProvider | None]:
