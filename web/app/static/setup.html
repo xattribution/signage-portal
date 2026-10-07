@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="light dark"><title>Set up</title><link rel="icon" href="/static/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="/static/admin.css"><script type="module" src="/static/setup.js"></script></head>
+<body class="login-page"><section class="login-art" aria-label="Display control"><div class="brand"><span class="mark" aria-hidden="true"></span><span id="site-name">Signage</span></div><div><div class="eyebrow">FIRST LAUNCH</div><h1>Display<br>management.</h1><div class="login-lines" aria-hidden="true"><span>01</span><span>02</span><span>03</span></div></div><footer>Administrator workspace</footer></section>
+<main class="login-panel"><form id="f" class="login-form" novalidate>
+<div class="eyebrow">FIRST LAUNCH</div><h1>Set up your workspace</h1>
+<div class="field"><label for="name">Workspace name <span class="i" data-tip="Shown in the top bar and on the sign-in page. You can change it later under Settings.">i</span></label><input id="name" name="site_name" type="text" required maxlength="80" value="Signage"></div>
+<div class="field"><label for="u">Administrator username</label><input id="u" name="username" type="text" autocomplete="username" required maxlength="64" value="admin" spellcheck="false" autocapitalize="none"></div>
+<div class="field"><label for="p">Password <span class="i" data-tip="At least 12 characters. Add more administrators later under Users.">i</span></label><div class="password-control"><input id="p" name="password" type="password" autocomplete="new-password" required minlength="12" maxlength="128"><button id="show-password" type="button" aria-pressed="false">Show</button></div></div>
+<div class="field"><label for="p2">Confirm password</label><input id="p2" type="password" autocomplete="new-password" required minlength="12" maxlength="128"></div>
+<div class="field" id="code-field" hidden><label for="code">Setup code <span class="i" data-tip="This server was started with SETUP_TOKEN. Enter that value here.">i</span></label><input id="code" type="text" maxlength="128" autocomplete="off" spellcheck="false" autocapitalize="none"></div>
+<div class="err-text" id="e" role="alert"></div>
+<button id="submit" class="btn primary" type="submit">Finish setup <span aria-hidden="true">→</span></button>
+</form></main><div id="toasts"></div><div id="tip" role="tooltip"></div></body></html>

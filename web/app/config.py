@@ -1,4 +1,5 @@
 """Validated environment configuration; storage is separated by trust level."""
+import ipaddress
 import os
 import re
 import secrets
@@ -39,8 +40,18 @@ AUTH_MODE = [m.lower() for m in _list("AUTH_MODE")] or ["local"]
 ALLOW_INSECURE_DEV = _bool("ALLOW_INSECURE_DEV", False)
 SECRET_KEY = os.getenv("SECRET_KEY", "")
 SESSION_HOURS = _int("SESSION_HOURS", 12, 1, 168)
-COOKIE_SECURE = _bool("COOKIE_SECURE", True)
+# COOKIE_SECURE: "auto" (default) marks cookies Secure on HTTPS requests and still works on
+# plain-HTTP LANs; "true" requires HTTPS for administration; "false" is for isolated testing.
+_cookie_mode = os.getenv("COOKIE_SECURE", "auto").strip().lower()
+COOKIE_AUTO = _cookie_mode == "auto"
+COOKIE_SECURE = False if COOKIE_AUTO else _bool("COOKIE_SECURE", True)
+# Without ALLOWED_HOSTS the portal accepts any IP-address Host header (DNS rebinding needs a
+# hostname, so IP literals are safe) plus localhost and the hostnames added under Settings.
+HOSTS_AUTO = not _list("ALLOWED_HOSTS")
 ALLOWED_HOSTS = _list("ALLOWED_HOSTS") or ["localhost", "127.0.0.1", "::1"]
+EXTRA_HOSTS: list[str] = []  # Settings → Access names (auto mode only)
+# Optional one-time code the first-launch setup page asks for.
+SETUP_TOKEN = os.getenv("SETUP_TOKEN", "").strip()
 ADMIN_ORIGINS = _list("ADMIN_ORIGINS")
 PLAYER_BASE_URL = os.getenv("PLAYER_BASE_URL", "").rstrip("/")
 ADMIN_USER = os.getenv("ADMIN_USER", "admin")
@@ -71,8 +82,23 @@ MEDIA_VOLUME_ID = os.getenv("MEDIA_VOLUME_ID", "").strip()
 
 
 
+def host_allowed(hostname: str | None) -> bool:
+    """Host-header allowlist. Hostnames must be explicit; IP literals are accepted in auto mode."""
+    if not hostname:
+        return False
+    if not HOSTS_AUTO:
+        return "*" in ALLOWED_HOSTS or hostname in ALLOWED_HOSTS
+    if hostname == "localhost" or hostname.lower() in EXTRA_HOSTS:
+        return True
+    try:
+        ipaddress.ip_address(hostname)
+    except ValueError:
+        return False
+    return True
+
+
 def validate() -> None:
-    if ("none" in AUTH_MODE or "*" in ALLOWED_HOSTS or not COOKIE_SECURE) and not ALLOW_INSECURE_DEV:
+    if ("none" in AUTH_MODE or "*" in ALLOWED_HOSTS or not (COOKIE_SECURE or COOKIE_AUTO)) and not ALLOW_INSECURE_DEV:
         raise RuntimeError("Insecure settings require ALLOW_INSECURE_DEV=true. Use TLS and explicit hosts in production.")
     if "*" in _list("FORWARDED_ALLOW_IPS"):
         raise RuntimeError("FORWARDED_ALLOW_IPS must name trusted proxy addresses, never '*'.")
@@ -107,6 +133,8 @@ def validate() -> None:
             raise RuntimeError("PLAYER_ONLY_HOSTS must contain hostnames, not URLs.")
     if REQUIRE_MEDIA_MARKERS and not re.fullmatch(r"[A-Za-z0-9_-]{16,80}", MEDIA_VOLUME_ID):
         raise RuntimeError("Set MEDIA_VOLUME_ID to the persistent NAS marker ID.")
+    if SETUP_TOKEN and not 8 <= len(SETUP_TOKEN) <= 128:
+        raise RuntimeError("SETUP_TOKEN must be 8 to 128 characters.")
     if SECRET_KEY and len(SECRET_KEY) < 32:
         raise RuntimeError("SECRET_KEY must contain at least 32 characters.")
 

@@ -71,7 +71,7 @@ Install this release under `/opt/signage`, adapt `.env`, and read `STREAMS-AND-S
 ```sh
 cd /opt/signage
 # Build while online; no downloading/building is required during a normal reboot.
-sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml build --pull
+sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.host-storage.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml build --pull
 sudo python3 scripts/storage-preflight.py /etc/signage/storage.json
 sudo install -m 0644 deploy/signage.service /etc/systemd/system/signage.service
 sudo install -m 0644 deploy/signage.timer /etc/systemd/system/signage.timer

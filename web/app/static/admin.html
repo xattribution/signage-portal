@@ -12,6 +12,7 @@
     <button type="button" data-view="displays">Displays</button>
     <button type="button" data-view="activity">Activity</button>
     <button type="button" data-view="users" id="tab-users" hidden>Users</button>
+    <button type="button" data-view="settings">Settings</button>
   </nav>
   <div class="header-actions">
     <button class="icon-btn" id="refresh-now" type="button" aria-label="Refresh workspace" title="Refresh workspace" aria-busy="false"></button>
@@ -46,6 +47,7 @@
     </section>
     <section id="view-activity" class="view" aria-labelledby="activity-title"><div class="page-head"><div><div class="eyebrow">HISTORY</div><h1 id="activity-title">Activity</h1><p>A record of changes to your workspace.</p></div><button class="btn" id="refresh-activity">Refresh log</button></div><div class="table-wrap"><table class="grid" id="activity"><caption class="sr-only">Workspace activity</caption></table></div></section>
     <section id="view-users" class="view" aria-labelledby="users-title"><div class="page-head"><div><div class="eyebrow">ACCESS</div><h1 id="users-title">Users</h1><p>Every account has full administrative access.</p></div><button class="btn primary" id="btn-new-user">＋ Add user</button></div><div class="table-wrap"><table class="grid" id="users"><caption class="sr-only">Administrator accounts</caption></table></div></section>
+    <section id="view-settings" class="view" aria-labelledby="settings-title"><div class="page-head"><div><div class="eyebrow">CONFIGURATION</div><h1 id="settings-title">Settings</h1></div></div><form id="settings-form" class="settings-form" novalidate></form></section>
     <footer class="workspace-footer"><span>Times shown in your browser’s time zone.</span><span id="workspace-date"></span></footer>
   </main>
 </div>

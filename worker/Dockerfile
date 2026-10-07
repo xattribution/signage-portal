@@ -14,6 +14,8 @@ RUN python -m pip install --no-cache-dir -r requirements.txt \
 COPY convert.py storage_check.py graphics.py ./
 RUN groupadd --gid 1000 worker \
  && useradd --system --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin worker \
+ && mkdir -p /media/originals /media/work \
+ && chown 1000:1000 /media/originals /media/work \
  && chmod -R a-w /srv
 USER 1000:1000
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOME=/tmp TMPDIR=/tmp

@@ -1,4 +1,6 @@
 import hashlib
+import hmac
+import ipaddress
 import uuid
 import json
 import sqlite3
@@ -12,10 +14,10 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from .schemas import (StreamBody, StreamPatch, OrderBody, DisplayBody, UploadPatch, PlacementBody, PlacementPatch, NewUser, NewPassword)
+from .schemas import (StreamBody, StreamPatch, OrderBody, DisplayBody, UploadPatch, PlacementBody, PlacementPatch, NewUser, NewPassword, SetupBody)
 from .security import BoundaryMiddleware
 
-from . import auth, config, db, jobs, playlist, feeds, shares, presentation
+from . import auth, config, db, jobs, playlist, feeds, shares, presentation, settings
 from .auth import CurrentUser
 from .auth.base import Principal
 from .auth.local import hash_password, validate_new_password
@@ -105,8 +107,19 @@ def _page(name: str) -> FileResponse:
     return FileResponse(STATIC / name, headers={"Cache-Control": "no-cache"})
 
 
+def _local_provider():
+    return next((p for p in auth.chain if p.name == "local"), None)
+
+
+def setup_needed() -> bool:
+    """First launch: local accounts are in use and none exist yet."""
+    return _local_provider() is not None and not db.row("SELECT id FROM users LIMIT 1")
+
+
 @app.get("/", include_in_schema=False)
 def admin_page(request: Request):
+    if setup_needed():
+        return RedirectResponse("/setup", status_code=303)
     who, failed = auth.identify(request)
     if who is None:
         url = failed.login_url(request) if failed else None
@@ -118,9 +131,88 @@ def admin_page(request: Request):
 
 @app.get("/login", include_in_schema=False)
 def login_page():
+    if setup_needed():
+        return RedirectResponse("/setup", status_code=303)
     if not any(p.interactive for p in auth.chain):
         return RedirectResponse("/", status_code=303)
     return _page("login.html")
+
+
+# ---------------------------------------------------------------------------
+# First-launch setup. Open only while no account exists, only to LAN/loopback
+# clients, and (optionally) only with SETUP_TOKEN.
+# ---------------------------------------------------------------------------
+def _lan_client(request: Request) -> bool:
+    try:
+        ip = ipaddress.ip_address(request.client.host if request.client else "")
+    except ValueError:
+        return False
+    if getattr(ip, "ipv4_mapped", None):
+        ip = ip.ipv4_mapped
+    return ip.is_private or ip.is_loopback or ip.is_link_local
+
+
+@app.get("/setup", include_in_schema=False)
+def setup_page():
+    if not setup_needed():
+        return RedirectResponse("/", status_code=303)
+    return _page("setup.html")
+
+
+@app.get("/api/setup", include_in_schema=False)
+def setup_status(request: Request):
+    return {"needed": setup_needed(), "code_required": bool(config.SETUP_TOKEN),
+            "lan": _lan_client(request), "site_name": config.SITE_NAME}
+
+
+@app.post("/api/setup", include_in_schema=False)
+def setup_finish(body: SetupBody, request: Request, response: Response):
+    local = _local_provider()
+    if local is None or not setup_needed():
+        raise HTTPException(409, "Setup is already complete. Sign in instead.")
+    if not _lan_client(request):
+        raise HTTPException(403, "Finish setup from a computer on the same network as the server.")
+    if config.SETUP_TOKEN:
+        from .auth.local import _reserve_attempt
+        _reserve_attempt("setup", request.client.host if request.client else "unknown")
+        if not hmac.compare_digest(body.setup_code.strip().encode(), config.SETUP_TOKEN.encode()):
+            raise HTTPException(401, "That setup code is not correct.")
+    validate_new_password(body.password)
+    changes = {"site_name": body.site_name} if not settings.locked("site_name") else {}
+    password_hash = hash_password(body.password)
+    with db.tx() as c:
+        c.execute("BEGIN IMMEDIATE")
+        if c.execute("SELECT 1 FROM users LIMIT 1").fetchone():
+            raise HTTPException(409, "Setup is already complete. Sign in instead.")
+        c.execute("INSERT INTO users(username, password_hash, created_at) VALUES (?,?,?)",
+                  (body.username, password_hash, db.now_ms()))
+    if changes:
+        settings.save(changes)
+    user = db.row("SELECT * FROM users WHERE username=?", (body.username,))
+    local._issue(response, user, request)
+    ip = request.client.host if request.client else "unknown"
+    db.audit(body.username, f"completed first-launch setup from {ip[:64]}")
+    return {"ok": True}
+
+
+# ---------------------------------------------------------------------------
+# Settings page
+# ---------------------------------------------------------------------------
+@app.get("/api/settings")
+def get_settings(me: Principal = CurrentUser):
+    return settings.current()
+
+
+@app.patch("/api/settings")
+async def patch_settings(request: Request, me: Principal = CurrentUser):
+    try:
+        changes = await request.json()
+    except ValueError as exc:
+        raise HTTPException(400, "Send the settings as JSON.") from exc
+    changed = await run_in_threadpool(settings.save, changes)
+    if changed:
+        db.audit(me.username, "changed settings: " + ", ".join(changed))
+    return settings.current()
 
 
 @app.post("/auth/logout", include_in_schema=False)
@@ -169,7 +261,7 @@ def healthz():
 
 @app.get("/api/site", include_in_schema=False)
 def site():
-    return {"name": config.SITE_NAME}
+    return {"name": config.SITE_NAME, "setup_needed": setup_needed()}
 
 
 # ---------------------------------------------------------------------------

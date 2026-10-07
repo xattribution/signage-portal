@@ -104,6 +104,8 @@ CREATE INDEX IF NOT EXISTS ix_display_stream ON displays(stream_id);
 CREATE INDEX IF NOT EXISTS ix_slides_upload ON slides(upload_id, idx);
 CREATE INDEX IF NOT EXISTS ix_place_stream ON placements(stream_id, mode, position);
 CREATE TABLE IF NOT EXISTS retired_display_slugs (slug TEXT PRIMARY KEY);
+-- Portal-editable settings (Settings page). Environment variables, when set, take precedence.
+CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS library_transfers (
     id TEXT PRIMARY KEY,
     direction TEXT NOT NULL,
@@ -240,6 +242,8 @@ def init() -> None:
         conn.commit()
     finally:
         conn.close()
+    from . import settings
+    settings.load()
 
 
 def allocate_id(conn: sqlite3.Connection, table: str) -> int:

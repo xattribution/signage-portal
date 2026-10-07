@@ -2090,3 +2090,33 @@ table.grid .link {
   .presentation-preview-clock strong { font-size:10vw; }
   .presentation-preview-options .m { display:none; }
 }
+
+/* ---- Settings ----------------------------------------------------------- */
+.settings-form { max-width:620px; display:flex; flex-direction:column; }
+.setting-row {
+  display:grid;
+  grid-template-columns:200px minmax(0,1fr);
+  gap:18px;
+  align-items:center;
+  padding:16px 0;
+  border-bottom:1px solid var(--line);
+}
+.setting-row>label { font-size:13px; font-weight:500; display:flex; align-items:center; gap:2px; }
+.setting-row input[type=text], .setting-row input[type=number], .setting-row textarea { width:100%; max-width:360px; }
+.setting-row input[type=number] { max-width:120px; }
+.setting-row textarea { resize:vertical; font-family:var(--mono, ui-monospace, monospace); font-size:12px; }
+.setting-row :disabled { opacity:.6; cursor:not-allowed; }
+.setting-actions { padding-top:18px; }
+.settings-form .err-text:empty { display:none; }
+.settings-form .err-text { padding-top:12px; }
+.lock { display:inline-flex; width:14px; height:14px; margin-left:6px; color:var(--muted); cursor:help; }
+.lock .icon { width:14px; height:14px; }
+/* Solid selected state for new segmented controls. */
+.seg.solid button.on { background:var(--accent); color:var(--surface); box-shadow:none; }
+.seg.solid button:disabled { cursor:not-allowed; }
+@media (max-width:640px) {
+  .setting-row { grid-template-columns:1fr; gap:8px; }
+}
+.setting-row>.seg { justify-self:start; }
+.login-form h1+.field { margin-top:12px; }
+.login-form .field[hidden]+.err-text:empty { display:none; }
