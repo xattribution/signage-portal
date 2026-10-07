@@ -910,7 +910,10 @@ function status() {
   $("#avatar").textContent = S.me.username.slice(0, 2).toUpperCase();
   $("#account-menu summary").setAttribute("aria-label", `Account: ${S.me.username}`);
   $("#account-menu summary").title = S.me.username;
-  $("#auth-provider").textContent = S.me.provider === "local" ? "Local account" : "Access account";
+  const openAccess = S.me.provider === "none";
+  $("#auth-provider").textContent = openAccess ? "Sign-in is handled outside the portal" : S.me.provider === "local" ? "Local account" : "Access account";
+  $("#signout").hidden = openAccess;
+  if (openAccess) { $("#me").textContent = "Open access"; $("#avatar").textContent = "—"; }
   $("#site-name").textContent = S.site_name;
   document.title = `${view[0].toUpperCase() + view.slice(1)} · ${S.site_name}`;
   $("#worker-down").hidden = S.worker_alive;

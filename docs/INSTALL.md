@@ -6,7 +6,7 @@ This guide is for a Linux host with systemd and Docker Engine/Compose, persisten
 
 ## 1. Put the code on the host
 
-Place a clean checkout or extracted source package at `/opt/signage`. Keep the application code separate from state. For an existing installation, retain its exact data/media paths and read [UPGRADING.md](UPGRADING.md) before replacing anything. Back up first.
+Place a clean checkout or extracted source package at `~/signage` (the installer's default folder). Keep the application code separate from state. For an existing installation, retain its exact data/media paths and read [UPGRADING.md](UPGRADING.md) before replacing anything. Back up first.
 
 GitHub is source hosting, not the server running Python, SQLite and media conversion. Publishing the repository does not deploy the portal. A static GitHub Pages site cannot run these backend services.
 
@@ -18,7 +18,7 @@ Use persistent local paths for `DATA_ROOT` and `SPOOL_ROOT`; use the NAS for `ME
 
 ## 3. Configure application and playback addresses
 
-From `/opt/signage`:
+From `~/signage`:
 
 ```sh
 cp .env.example .env

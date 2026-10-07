@@ -6,7 +6,7 @@ A self-hosted office signage system: ingest files, build reusable streams, and k
 
 ## Quick start
 
-Run this on a Linux server. It installs Docker if it is missing, downloads the portal to `/opt/signage` and starts it on port 51480.
+Run this on a Linux server. It installs Docker if it is missing, downloads the portal to `~/signage` and starts it on port 51480.
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/xattribution/signage-portal/main/install.sh | sudo bash
@@ -40,9 +40,10 @@ A backup is a single `.tar` file. It holds the database (accounts, settings, str
 
 | To do this | Do this |
 |---|---|
-| Use a different port | Put `SIGNAGE_PORT=52000` in `/opt/signage/.env`, then run the update command |
+| Use a different port | Put `SIGNAGE_PORT=52000` in `~/signage/.env`, then run the update command |
 | Reach it by a name such as `signage.office.lan` | Add the name under **Settings → Access names** (IP addresses always work) |
-| Require a code on the setup page | Put `SETUP_TOKEN=your-code` in `/opt/signage/.env` before the first visit, then run the update command |
+| Require a code on the setup page | Put `SETUP_TOKEN=your-code` in `~/signage/.env` before the first visit, then run the update command |
+| Turn off the portal's own login (sign-in handled elsewhere) | Put `AUTH_MODE=none` in `~/signage/.env`, then run the update command. Anyone who can reach the portal can then manage it, so only do this behind something that controls access, such as a sign-in proxy or Cloudflare Access |
 | Add HTTPS, NAS storage, Cloudflare or systemd startup | Follow [Installation](docs/INSTALL.md) |
 | Run it without the installer | `git clone https://github.com/xattribution/signage-portal.git && cd signage-portal && docker compose up -d` |
 

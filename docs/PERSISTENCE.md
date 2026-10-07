@@ -66,21 +66,21 @@ The preflight opens directories without following symlinks, checks the descripto
 
 ## 3. Build once, then let systemd own startup
 
-Install this release under `/opt/signage`, adapt `.env`, and read `STREAMS-AND-SOURCES.md` for playback host/TLS settings. The base Compose file keeps the standalone deployment available; add the NAS overlay for browsing. All bind mounts use `create_host_path: false`.
+Install this release under `~/signage` (the installer's default), adapt `.env`, and read `STREAMS-AND-SOURCES.md` for playback host/TLS settings. The base Compose file keeps the standalone deployment available; add the NAS overlay for browsing. All bind mounts use `create_host_path: false`.
 
 ```sh
-cd /opt/signage
+cd ~/signage
 # Build while online; no downloading/building is required during a normal reboot.
 sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.host-storage.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml build --pull
 sudo python3 scripts/storage-preflight.py /etc/signage/storage.json
-sudo install -m 0644 deploy/signage.service /etc/systemd/system/signage.service
+sed "s#@SIGNAGE_DIR@#$PWD#g" deploy/signage.service | sudo tee /etc/systemd/system/signage.service >/dev/null
 sudo install -m 0644 deploy/signage.timer /etc/systemd/system/signage.timer
 sudo systemctl daemon-reload
 sudo systemctl enable --now signage.timer
 sudo systemctl start signage.service
 ```
 
-Edit the unit's `WorkingDirectory`, `RequiresMountsFor` and command paths when your locations differ. Do not run an old standalone Compose stack alongside it. Stop the existing stack with its original project name before migrating. Back up first.
+The `sed` step writes your install folder into the unit. Edit its `RequiresMountsFor` line when your mount points differ. Do not run an old standalone Compose stack alongside it. Stop the existing stack with its original project name before migrating. Back up first.
 
 The systemd overlay sets Docker restart policy to **no** for these two containers. This is deliberate: a Docker-daemon auto-restart must not race ahead of required NAS mounts. The service orders itself after the mount units, runs the preflight, then starts Compose in the foreground. Its `--force-recreate` obtains fresh bind mounts while preserving host data. The timer retries inactive/failed startup every 30 seconds, including an initial mount dependency failure. An already-running service is not restarted by each timer tick. The service also restarts after an unexpected exit; neither mechanism bypasses the storage preflight.
 

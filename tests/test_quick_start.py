@@ -138,3 +138,40 @@ def test_auto_cookie_mode_is_not_an_insecure_override(monkeypatch):
     monkeypatch.setattr(config, "COOKIE_AUTO", False)
     with pytest.raises(RuntimeError):
         config.validate()
+
+
+@pytest.fixture
+def open_access(monkeypatch):
+    """Login-free mode: AUTH_MODE=none, sign-in handled outside the portal."""
+    from app import auth
+    monkeypatch.setattr(config, "AUTH_MODE", ["none"])
+    monkeypatch.setattr(auth, "chain", [auth.NoAuth()])
+    return TestClient(app, base_url="http://localhost")
+
+
+def test_login_free_mode_opens_workspace_without_sign_in(open_access):
+    assert open_access.get("/", follow_redirects=False).status_code == 200
+    assert open_access.get("/login", follow_redirects=False).headers["location"] == "/"
+    assert open_access.get("/setup", follow_redirects=False).headers["location"] == "/"
+    overview = open_access.get("/api/overview")
+    assert overview.status_code == 200 and overview.json()["me"]["provider"] == "none"
+    assert overview.json()["manages_users"] is False
+
+
+def test_login_free_mode_keeps_request_protections(open_access, monkeypatch):
+    monkeypatch.setattr(config, "CLOCK_24H", True)
+    # Writes still need the same-origin header, and unknown hostnames are still refused.
+    assert open_access.patch("/api/settings", json={"clock_24h": False}).status_code == 403
+    assert open_access.patch("/api/settings", json={"clock_24h": False}, headers=WRITE).status_code == 200
+    assert open_access.get("/healthz", headers={"Host": "evil.example"}).status_code == 400
+    assert db.row("SELECT who FROM audit ORDER BY id DESC LIMIT 1")["who"] == "open-access"
+
+
+def test_login_free_mode_is_a_supported_setting(monkeypatch):
+    monkeypatch.setattr(config, "ALLOW_INSECURE_DEV", False)
+    monkeypatch.setattr(config, "COOKIE_AUTO", True)
+    monkeypatch.setattr(config, "AUTH_MODE", ["none"])
+    config.validate()
+    monkeypatch.setattr(config, "AUTH_MODE", ["none", "local"])
+    with pytest.raises(RuntimeError):
+        config.validate()
