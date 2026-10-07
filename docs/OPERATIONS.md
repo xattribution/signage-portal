@@ -24,7 +24,7 @@ For a systemd-managed deployment:
 sudo systemctl status signage.service signage.timer
 sudo journalctl -u signage.service --since today
 cd /opt/signage
-sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml logs --tail=200 web worker
+sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.host-storage.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml logs --tail=200 web worker
 ```
 
 Use the same project name and files as the installed units. Do not launch a second stack while troubleshooting. Do not remove read-only mounts, media markers, TLS requirements or container isolation to silence a failing check.
@@ -45,7 +45,7 @@ With systemd managing the service:
 sudo systemctl stop signage.timer signage.service
 # Take a consistent backup; install/review the next source revision.
 cd /opt/signage
-sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml build --pull
+sudo docker compose --project-name signage -f docker-compose.yml -f docker-compose.host-storage.yml -f docker-compose.nas.yml -f deploy/compose.systemd.yml build --pull
 sudo python3 scripts/storage-preflight.py /etc/signage/storage.json
 sudo systemctl start signage.timer signage.service
 ```

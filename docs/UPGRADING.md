@@ -1,5 +1,18 @@
 # Upgrade from the supplied version
 
+## Quick-start revision
+
+This revision makes `docker compose up -d` work with no `.env` and moves first-time configuration into the browser. Existing installations keep working once the four items below are handled. No database migration beyond a new `settings` table is involved, and no stream key, display slug or media path changes.
+
+1. **Storage overlay.** `docker-compose.yml` now stores data in Docker volumes. Installations that use host paths or a NAS must add `-f docker-compose.host-storage.yml` to every Compose command. The supplied systemd unit and the commands in the docs already include it. If you run the plain file by mistake, the stack starts empty; your real data stays untouched on disk until you add the overlay back.
+2. **Port.** The container now listens on 51480, and the default published port is `0.0.0.0:51480`. `PORT` and `BIND_ADDRESS` are renamed to `SIGNAGE_PORT` and `SIGNAGE_BIND`. Rename them in `.env`, and point your reverse proxy at `127.0.0.1:<SIGNAGE_PORT>` (see `deploy/nginx.example.conf`). Keep `SIGNAGE_BIND=127.0.0.1` behind a proxy.
+3. **Cookies.** `COOKIE_SECURE` now defaults to `auto`, which sets Secure cookies on HTTPS and still allows sign-in over a plain-HTTP LAN. An existing `COOKIE_SECURE=true` keeps the strict HTTPS-only behavior.
+4. **Hosts.** When `ALLOWED_HOSTS` is empty, the portal accepts any IP-address Host header plus localhost and the names listed under Settings → Access names. An existing `ALLOWED_HOSTS` keeps working exactly as before and locks that field.
+
+`ADMIN_PASSWORD` is now optional: with no accounts and no password, the portal shows a first-launch setup page instead of refusing to start. `SITE_NAME`, `CLOCK_24H`, `DEFAULT_SLIDE_SECONDS` and `TARGET_WIDTH`/`TARGET_HEIGHT` can now be changed on the Settings page. Any of them set in `.env` stays in charge and appears locked there.
+
+---
+
 ## Banner/graphics revision
 
 Back up the database and media, then update **web and worker together**. New columns store per-stream presentation settings/revisions and the NAS transfer graphic/content choice; a new table stores copied presets. Existing stream keys, display slugs, assignments, sources and media paths are not renamed. Modern sessions are not deliberately revoked by this addition.

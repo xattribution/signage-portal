@@ -15,6 +15,16 @@ from ..security import check_write
 from .base import AuthProvider, Principal
 
 COOKIE = "__Host-sp_session" if config.COOKIE_SECURE else "sp_session"
+SECURE_COOKIE = "__Host-sp_session"
+
+
+def _secure(request: Request) -> bool:
+    """Strict mode always sets Secure; auto mode follows the request's (proxy-resolved) scheme."""
+    return config.COOKIE_SECURE or (config.COOKIE_AUTO and request.url.scheme == "https")
+
+
+def cookie_name(request: Request) -> str:
+    return SECURE_COOKIE if _secure(request) else "sp_session"
 HASHER = PasswordHasher(time_cost=3, memory_cost=65536, parallelism=1, type=Type.ID)
 _PASSWORD_WORK = threading.BoundedSemaphore(2)
 _WINDOW_MS = 600_000
@@ -93,7 +103,9 @@ class LocalAuth(AuthProvider):
         if db.row("SELECT id FROM users LIMIT 1"):
             return
         if not config.ADMIN_PASSWORD:
-            raise RuntimeError("No local accounts exist. Set ADMIN_USER and ADMIN_PASSWORD for first startup.")
+            # The first-launch setup page creates the first account in the browser.
+            print("[portal] No accounts yet. Open the portal in a browser to finish first-launch setup.", flush=True)
+            return
         validate_new_password(config.ADMIN_PASSWORD)
         if not re.fullmatch(r"[A-Za-z0-9._@-]{2,64}", config.ADMIN_USER):
             raise RuntimeError("Invalid ADMIN_USER.")
@@ -101,7 +113,7 @@ class LocalAuth(AuthProvider):
                    (config.ADMIN_USER, hash_password(config.ADMIN_PASSWORD), db.now_ms()))
         db.audit("system", f"created bootstrap account '{config.ADMIN_USER}'")
 
-    def _issue(self, response: Response, user: dict) -> None:
+    def _issue(self, response: Response, user: dict, request: Request | None = None) -> None:
         token = secrets.token_urlsafe(32)
         now = db.now_ms()
         with db.tx() as c:
@@ -114,11 +126,12 @@ class LocalAuth(AuthProvider):
             c.execute("DELETE FROM sessions WHERE user_id=? AND token_hash NOT IN "
                       "(SELECT token_hash FROM sessions WHERE user_id=? ORDER BY created_at DESC LIMIT 20)",
                       (user["id"], user["id"]))
-        response.set_cookie(COOKIE, token, max_age=config.SESSION_HOURS * 3600,
-                            httponly=True, secure=config.COOKIE_SECURE, samesite="strict", path="/")
+        secure = _secure(request) if request is not None else config.COOKIE_SECURE
+        response.set_cookie(SECURE_COOKIE if secure else "sp_session", token, max_age=config.SESSION_HOURS * 3600,
+                            httponly=True, secure=secure, samesite="strict", path="/")
 
     def identify(self, request: Request) -> Principal | None:
-        token = request.cookies.get(COOKIE, "")
+        token = request.cookies.get(cookie_name(request), "")
         if not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
             return None
         user = db.row("SELECT u.username FROM sessions s JOIN users u ON u.id=s.user_id "
@@ -130,12 +143,13 @@ class LocalAuth(AuthProvider):
         return "/login"
 
     def logout(self, request: Request, response: Response) -> None:
-        token = request.cookies.get(COOKIE, "")
+        token = request.cookies.get(cookie_name(request), "")
         if token:
             db.execute("DELETE FROM sessions WHERE token_hash=?", (_digest(token),))
-        response.delete_cookie(COOKIE, path="/", secure=config.COOKIE_SECURE, httponly=True, samesite="strict")
-        if COOKIE != "sp_session":
-            response.delete_cookie("sp_session", path="/")  # Remove pre-upgrade cookies.
+        secure = _secure(request)
+        response.delete_cookie(cookie_name(request), path="/", secure=secure, httponly=True, samesite="strict")
+        if secure:
+            response.delete_cookie("sp_session", path="/")  # Remove plain-HTTP and pre-upgrade cookies.
 
     def router(self) -> APIRouter:
         r = APIRouter()
@@ -165,7 +179,7 @@ class LocalAuth(AuthProvider):
                     user["password_hash"] = new_hash
             finally:
                 _PASSWORD_WORK.release()
-            self._issue(response, user)
+            self._issue(response, user, request)
             db.audit(user["username"], f"login from {ip[:64]}")
             return {"ok": True}
 

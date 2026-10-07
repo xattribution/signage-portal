@@ -1,0 +1,46 @@
+# Production storage: replace the quick-start Docker volumes with verified host paths
+# (local disk for the database, NAS for media). Use with docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.host-storage.yml up -d
+# Set DATA_ROOT, SPOOL_ROOT and MEDIA_ROOT in .env first; see docs/PERSISTENCE.md.
+services:
+  web:
+    volumes:
+      - type: bind
+        source: ${DATA_ROOT:?Set DATA_ROOT}
+        target: /data
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${SPOOL_ROOT:?Set SPOOL_ROOT}
+        target: /spool
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/originals
+        target: /media/originals
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/work
+        target: /media/work
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/rendered
+        target: /media/rendered
+        bind:
+          create_host_path: false
+
+  worker:
+    volumes:
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/originals
+        target: /media/originals
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/work
+        target: /media/work
+        bind:
+          create_host_path: false

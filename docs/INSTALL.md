@@ -1,5 +1,7 @@
 # Install the office signage service
 
+For a quick evaluation or a small LAN install, the two commands in the [README](../README.md#quick-start) are enough. This guide is the production path: verified host storage, TLS, and systemd startup.
+
 This guide is for a Linux host with systemd and Docker Engine/Compose, persistent local storage, and an SMB/NFS share. The supplied configuration is a template, not a claim that your NAS, proxy or Cast Pro has been tested.
 
 ## 1. Put the code on the host
@@ -23,7 +25,7 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Edit the following settings. The complete set is documented in `.env.example` and read in `web/app/config.py`.
+Edit the following settings. The complete set is documented in `.env.example` and read in `web/app/config.py`. Production uses host paths, so every Compose command adds `-f docker-compose.host-storage.yml`. Settings you put in `.env` are locked on the portal's Settings page.
 
 | Setting | What to supply |
 |---|---|
@@ -31,7 +33,8 @@ Edit the following settings. The complete set is documented in `.env.example` an
 | `MEDIA_VOLUME_ID` | The identifier placed on the verified media share |
 | `REQUIRE_MEDIA_MARKERS` | Keep `true` for this deployment |
 | `SITE_NAME` | The workspace title |
-| `ADMIN_USER`, `ADMIN_PASSWORD` | Initial local administrator; unique 12–128-character password |
+| `SIGNAGE_PORT`, `SIGNAGE_BIND` | Published port (default 51480) and interface; use `127.0.0.1` behind the proxy |
+| `ADMIN_USER`, `ADMIN_PASSWORD` | Optional. Leave blank to create the first administrator on the setup page; `SETUP_TOKEN` can require a code there |
 | `ALLOWED_HOSTS` | Actual admin/player hostnames plus health-check names, no schemes/ports |
 | `ADMIN_ORIGINS` | Complete HTTPS administrator origin |
 | `PLAYER_BASE_URL`, `PLAYER_ONLY_HOSTS` | Separate view-only playback origin/hostname |
@@ -39,9 +42,9 @@ Edit the following settings. The complete set is documented in `.env.example` an
 | NAS browser variables | Paths/IDs matching the NAS Compose overlay and host configuration |
 | `SOURCE_MEDIA_ORIGINS`, `SOURCE_FRAME_ORIGINS` | Exact approved origins, or empty to disable external sources |
 
-Keep `COOKIE_SECURE=true`, `ALLOW_INSECURE_DEV=false`, and loopback port publishing. Adapt `deploy/nginx.example.conf`, install certificates trusted by your browsers/displays, and validate both hostnames. Do not put NAS or UniFi administrator credentials in `.env`. Read [STREAMS-AND-SOURCES.md](STREAMS-AND-SOURCES.md) before enabling external sources.
+Set `COOKIE_SECURE=true`, keep `ALLOW_INSECURE_DEV=false`, and publish on loopback (`SIGNAGE_BIND=127.0.0.1`). Adapt `deploy/nginx.example.conf`, install certificates trusted by your browsers/displays, and validate both hostnames. Do not put NAS or UniFi administrator credentials in `.env`. Read [STREAMS-AND-SOURCES.md](STREAMS-AND-SOURCES.md) before enabling external sources.
 
-The local user is bootstrapped only when appropriate at first startup. Remove `ADMIN_PASSWORD` from `.env` after confirming the account exists; later password changes happen through the administrator workflow. Keep the local database and rate-limit secret private and backed up.
+With `ADMIN_PASSWORD` blank, the first visit opens the setup page, which only accepts LAN and loopback clients and closes for good once an account exists. If you set `ADMIN_PASSWORD` instead, remove it from `.env` after confirming the account exists; later password changes happen through the administrator workflow. Keep the local database and rate-limit secret private and backed up.
 
 ## 4. Build and install startup units
 

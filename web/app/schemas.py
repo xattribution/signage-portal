@@ -72,6 +72,13 @@ class NewUser(InputModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class SetupBody(InputModel):
+    site_name: str = Field(min_length=1, max_length=80)
+    username: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9._@-]+$")
+    password: str = Field(min_length=1, max_length=128)
+    setup_code: str = Field(default="", max_length=128)
+
+
 class NewPassword(InputModel):
     password: str = Field(min_length=1, max_length=128)
 

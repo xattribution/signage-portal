@@ -83,6 +83,7 @@ export function icon(name) {
     refresh: 'M20 7v5h-5 M4 17v-5h5 M6.1 7a7 7 0 0 1 11.55-2L20 8 M4 16l2.35 3A7 7 0 0 0 17.9 17',
     arrow: 'M5 12h14 M13 6l6 6-6 6',
     upload: 'M12 16V3 M7 8l5-5 5 5 M4 16v5h16v-5',
+    lock: 'M6 11h12v10H6z M8 11V8a4 4 0 0 1 8 0v3',
   };
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   for (const [k, v] of Object.entries({ viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', class: 'icon' })) svg.setAttribute(k, v);

@@ -813,6 +813,62 @@ async function renderUsers() {
         h("button", { class: "link danger", onclick: () => deleteUser(u) }, "Delete"))))));
 }
 
+// ---- Settings -------------------------------------------------------------
+// Fields set by a server environment variable are shown locked; everything else saves here.
+async function renderSettings() {
+  const data = await api("GET", "/api/settings");
+  const v = data.values, locked = data.locked;
+  const lockTip = key => locked[key] ? `Set on the server by ${locked[key].join(" and ")}. Change it there, or remove it to manage this here.` : null;
+  const lockIcon = key => locked[key] ? h("span", { class: "lock", tabindex: 0, "data-tip": lockTip(key), "aria-label": lockTip(key) }, icon("lock")) : null;
+  const segmented = (key, options, current) => {
+    const group = h("div", { class: "seg solid", role: "radiogroup", "data-key": key });
+    for (const [value, text] of options) {
+      group.append(h("button", { class: value === current ? "on" : "", role: "radio", "aria-checked": String(value === current),
+        disabled: !!locked[key], "data-value": String(value),
+        onclick: ev => { group.querySelectorAll("button").forEach(b => { const on = b === ev.currentTarget; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); }); } }, text));
+    }
+    return group;
+  };
+  const name = h("input", { id: "set-name", type: "text", maxlength: 80, value: v.site_name, disabled: !!locked.site_name });
+  const seconds = h("input", { id: "set-seconds", type: "number", min: 2, max: 3600, value: v.default_slide_seconds, disabled: !!locked.default_slide_seconds });
+  const clock = segmented("clock_24h", [[true, "24-hour"], [false, "12-hour"]], v.clock_24h);
+  const renderSize = segmented("render_size", [["1080p", "1080p"], ["4k", "4K"]], v.render_size);
+  const names = h("textarea", { id: "set-names", rows: 3, spellcheck: "false", autocapitalize: "none", placeholder: "signage.office.lan",
+    disabled: !!locked.access_names }, v.access_names.join("\n"));
+  const err = h("div", { class: "err-text", role: "alert" });
+  const row = (label, control, key, tipText) => h("div", { class: "setting-row" },
+    h("label", { for: control.id || null }, label, tipText ? h("span", { class: "i", "data-tip": tipText }, "i") : null, lockIcon(key)), control);
+  const pick = key => { const on = $(`[data-key="${key}"] button.on`); return on ? on.dataset.value : null; };
+  const save = h("button", { class: "btn primary", type: "submit" }, "Save settings");
+  $("#settings-form").replaceChildren(
+    row("Workspace name", name, "site_name", "Shown in the top bar and on the sign-in page."),
+    row("Clock format", clock, "clock_24h", "Used by clocks on displays and in the workspace."),
+    row("Seconds per slide", seconds, "default_slide_seconds", "The starting value when you place new content. Each placement can still use its own value."),
+    row("Render size", renderSize, "render_size", "The size new uploads are converted to. Pick 4K only for 4K panels. Content already in the library keeps its size until you retry it."),
+    data.hosts_auto || locked.access_names ? row("Access names", names, "access_names",
+      data.hosts_auto ? "IP addresses always work. List any hostname that people or displays use to reach this portal, one per line, without http:// or a port."
+                      : "Hostnames this portal answers to.") : null,
+    err, h("div", { class: "setting-actions" }, save));
+  $("#settings-form").onsubmit = async event => {
+    event.preventDefault();
+    err.textContent = "";
+    const changes = {};
+    if (!locked.site_name) changes.site_name = name.value.trim();
+    if (!locked.default_slide_seconds) changes.default_slide_seconds = parseInt(seconds.value, 10);
+    if (!locked.clock_24h) changes.clock_24h = pick("clock_24h") === "true";
+    if (!locked.render_size) changes.render_size = pick("render_size");
+    if (!locked.access_names && data.hosts_auto) changes.access_names = names.value.split(/[\s,]+/).filter(Boolean);
+    save.disabled = true;
+    try {
+      await api("PATCH", "/api/settings", changes);
+      toast("Settings saved");
+      await refresh(true);
+      await renderSettings();
+    } catch (error) { err.textContent = error.message; }
+    finally { save.disabled = false; }
+  };
+}
+
 async function resetPassword(u) {
   const pw = await promptBox(`Set password · ${u.username}`, "New password (12+ characters)", "", { type: "password", max: 128 });
   if (!pw) return;
@@ -950,7 +1006,7 @@ async function refresh(force = false) {
   }
 }
 function show(v) {
-  if (!["streams", "library", "displays", "activity", "users"].includes(v)) return;
+  if (!["streams", "library", "displays", "activity", "users", "settings"].includes(v)) return;
   if (v === "users" && S && !S.manages_users) v = "streams";
   view = v;
   document.querySelectorAll("#tabs button").forEach(button => {
@@ -965,6 +1021,7 @@ function show(v) {
   if (!S) return;
   if (v === "activity") renderActivity().catch(error => toast(error.message, true));
   else if (v === "users") renderUsers().catch(error => toast(error.message, true));
+  else if (v === "settings") renderSettings().catch(error => toast(error.message, true));
   render(true);
   if (v === "library") refreshTransfers();
 }

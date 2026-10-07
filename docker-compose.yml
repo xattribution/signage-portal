@@ -1,4 +1,8 @@
-# One web instance and one worker. Keep media on a dedicated, quota-limited NAS share.
+# Quick start: `docker compose up -d`, then open http://<server-ip>:51480 and finish setup
+# in the browser. No .env file is needed. Data lives in Docker volumes; for NAS storage
+# and systemd startup add docker-compose.host-storage.yml (see docs/INSTALL.md).
+name: signage
+
 x-hardening: &hardening
   read_only: true
   cap_drop: [ALL]
@@ -16,43 +20,23 @@ services:
     <<: *hardening
     build: ./web
     image: signage-web:modern
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATA_DIR: /data
       MEDIA_DIR: /media
+      # Optional code for the first-launch setup page (also read from .env).
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
     ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:8080"
+      # Change with SIGNAGE_PORT=xxxxx; set SIGNAGE_BIND=127.0.0.1 when a reverse proxy fronts it.
+      - "${SIGNAGE_BIND:-0.0.0.0}:${SIGNAGE_PORT:-51480}:51480"
     volumes:
-      - type: bind
-        source: ${DATA_ROOT:-./data}
-        target: /data
-        read_only: false
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${SPOOL_ROOT:-./spool}
-        target: /spool
-        read_only: false
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/originals
-        target: /media/originals
-        read_only: false
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/work
-        target: /media/work
-        read_only: false
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/rendered
-        target: /media/rendered
-        read_only: false
-        bind:
-          create_host_path: false
+      - signage-data:/data
+      - signage-spool:/spool
+      - signage-originals:/media/originals
+      - signage-work:/media/work
+      - signage-rendered:/media/rendered
     tmpfs:
       - /tmp:size=64m,noexec,nosuid,nodev
     pids_limit: 200
@@ -64,7 +48,9 @@ services:
     <<: *hardening
     build: ./worker
     image: signage-worker:modern
+    # The converter never has a network, the database, secrets or the served media.
     network_mode: none
+    depends_on: [web]
     environment:
       ORIGINALS_DIR: /media/originals
       WORK_DIR: /media/work
@@ -75,23 +61,20 @@ services:
       CONVERT_WALL_SECONDS: ${CONVERT_WALL_SECONDS:-3600}
       CONVERT_MAX_OUTPUT_MB: ${MAX_INGEST_MB:-8192}
     volumes:
-      - type: bind
-        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/originals
-        target: /media/originals
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ${MEDIA_ROOT:?Set MEDIA_ROOT}/work
-        target: /media/work
-        read_only: false
-        bind:
-          create_host_path: false
+      - signage-originals:/media/originals:ro
+      - signage-work:/media/work
     tmpfs:
       - /tmp:size=4g,noexec,nosuid,nodev,mode=1777
     pids_limit: 256
     mem_limit: 4g
     cpus: 2
+
+volumes:
+  signage-data:
+  signage-spool:
+  signage-originals:
+  signage-work:
+  signage-rendered:
 
 networks:
   front: {}

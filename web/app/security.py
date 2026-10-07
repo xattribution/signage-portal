@@ -80,9 +80,9 @@ class BoundaryMiddleware:
                         "form-action 'self'; frame-ancestors " + ("'self'" if player else "'none'")
                     )
                     h["X-Frame-Options"] = "SAMEORIGIN" if player else "DENY"
-                if path.startswith(("/api/", "/auth/", "/display/", "/preview/", "/stream/")) or path in ("/", "/login", "/logout"):
+                if path.startswith(("/api/", "/auth/", "/display/", "/preview/", "/stream/")) or path in ("/", "/login", "/logout", "/setup"):
                     h.setdefault("Cache-Control", "no-store")
-                if config.COOKIE_SECURE and scope["scheme"] == "https":
+                if (config.COOKIE_SECURE or config.COOKIE_AUTO) and scope["scheme"] == "https":
                     h["Strict-Transport-Security"] = "max-age=31536000"
             await send(message)
 
@@ -90,7 +90,10 @@ class BoundaryMiddleware:
             await JSONResponse({"detail": detail}, status_code=status,
                                headers=extra)(scope, receive, guarded_send)
 
-        if not valid_host or ("*" not in config.ALLOWED_HOSTS and hostname not in config.ALLOWED_HOSTS):
+        if not valid_host or not config.host_allowed(hostname):
+            if valid_host and config.HOSTS_AUTO:
+                return await reject(400, f"'{hostname}' is not an allowed name for this portal. Open it by IP "
+                                         "address and add the name under Settings → Access names.")
             return await reject(400, "Invalid host.")
         player_only_hosts = set(config.PLAYER_ONLY_HOSTS)
         if config.PLAYER_BASE_URL:
@@ -106,7 +109,7 @@ class BoundaryMiddleware:
                 return await reject(405, "Playback is view-only.", {"Allow": "GET, HEAD"})
         if path.startswith(("/display/", "/stream/", "/preview/", "/api/player/")) and method not in SAFE_METHODS:
             return await reject(405, "Playback is view-only.", {"Allow": "GET, HEAD"})
-        admin_route = (path in {"/", "/login", "/logout"} or path.startswith("/auth/")
+        admin_route = (path in {"/", "/login", "/logout", "/setup"} or path.startswith("/auth/")
                        or (path.startswith("/api/") and not path.startswith("/api/player/")
                            and path != "/api/site"))
         if admin_route and config.COOKIE_SECURE and not config.ALLOW_INSECURE_DEV and scope["scheme"] != "https":

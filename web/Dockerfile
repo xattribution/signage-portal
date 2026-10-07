@@ -17,11 +17,15 @@ RUN python -m pip install --no-cache-dir -r requirements.txt \
  && python -m pip check
 COPY app ./app
 COPY --from=player-assets /build/app/static/vendor/ ./app/static/vendor/
+# Mount points are owned by the service user so fresh named volumes start out writable.
 RUN groupadd --gid 1000 portal \
  && useradd --system --uid 1000 --gid 1000 --no-create-home --shell /usr/sbin/nologin portal \
+ && mkdir -p /data /spool /media/originals /media/work /media/rendered \
+ && chown 1000:1000 /data /spool /media/originals /media/work /media/rendered \
+ && chmod 0700 /data \
  && chmod -R a-w /srv
 USER 1000:1000
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 HOME=/tmp TMPDIR=/spool FORWARDED_ALLOW_IPS=127.0.0.1
-EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).read()"
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--proxy-headers", "--no-server-header", "--limit-concurrency", "64", "--timeout-keep-alive", "5"]
+EXPOSE 51480
+HEALTHCHECK --interval=30s --timeout=5s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:51480/healthz', timeout=3).read()"
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "51480", "--proxy-headers", "--no-server-header", "--limit-concurrency", "64", "--timeout-keep-alive", "5"]

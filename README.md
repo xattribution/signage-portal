@@ -1,16 +1,43 @@
 # Signage Portal
 
-A self-hosted office signage system: ingest files, build reusable streams, and keep each display on one permanent playback address. Content, announcements and banners change in the portal—not in each display's configuration.
-
-**Staging candidate.** Source and local test evidence are included. A clean release build, NAS reboot testing and physical-display acceptance remain required. No UniFi controller API integration is included.
+A self-hosted office signage system: ingest files, build reusable streams, and keep each display on one permanent playback address. Content, announcements and banners change in the portal, not in each display's configuration.
 
 ![Workspace with one top navigation bar](docs/evidence/repository-ui/streams-desktop.png)
 
-## Start here
+## Quick start
+
+You need a Linux machine with Docker and the Compose plugin.
+
+```sh
+git clone https://github.com/xattribution/signage-portal.git
+cd signage-portal
+docker compose up -d
+```
+
+The first build takes a few minutes because it installs the file converters. When it finishes, open `http://<server-ip>:51480` from a computer on the same network. A setup page asks for a workspace name and an administrator account, and then you are in the workspace.
+
+To put a screen on it, set the Cast Pro to Web mode and give it the display address shown on the **Displays** page, for example `http://<server-ip>:51480/display/lobby-1`. You never need to change that address again.
+
+Everything else is on the **Settings** page. No `.env` file is needed.
+
+| To do this | Run or change this |
+|---|---|
+| Use a different port | `SIGNAGE_PORT=52000 docker compose up -d` |
+| Reach it by a name such as `signage.office.lan` | Add the name under **Settings → Access names** (IP addresses always work) |
+| Require a code on the setup page | Start it the first time with `SETUP_TOKEN=your-code docker compose up -d` |
+| Update to the latest version | `git pull && docker compose up -d --build` |
+| Stop it | `docker compose down` (your data stays in Docker volumes) |
+| Add HTTPS, NAS storage, Cloudflare or systemd startup | Follow [Installation](docs/INSTALL.md) |
+
+The quick start serves plain HTTP on your network. Sign-in cookies switch to secure mode automatically when the portal is reached over HTTPS, so put it behind a TLS proxy before using it outside a trusted network.
+
+**Staging candidate.** Source and local test evidence are included. A clean release build, NAS reboot testing and physical-display acceptance remain required. No UniFi controller API integration is included.
+
+## Guides
 
 | Task | Guide |
 |---|---|
-| Install the running system | [Installation](docs/INSTALL.md) |
+| Production install with HTTPS, NAS storage and systemd | [Installation](docs/INSTALL.md) |
 | Publish this source to a private GitHub repository | [GitHub publishing](docs/GITHUB.md) |
 | Mount NAS storage and recover after reboot | [Persistence](docs/PERSISTENCE.md) |
 | Configure stable playback URLs or external sources | [Streams and sources](docs/STREAMS-AND-SOURCES.md) |
