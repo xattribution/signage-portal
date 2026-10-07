@@ -6,30 +6,47 @@ A self-hosted office signage system: ingest files, build reusable streams, and k
 
 ## Quick start
 
-You need a Linux machine with Docker and the Compose plugin.
+Run this on a Linux server. It installs Docker if it is missing, downloads the portal to `/opt/signage` and starts it on port 51480.
 
 ```sh
-git clone https://github.com/xattribution/signage-portal.git
-cd signage-portal
-docker compose up -d
+curl -fsSL https://raw.githubusercontent.com/xattribution/signage-portal/main/install.sh | sudo bash
 ```
 
-The first build takes a few minutes because it installs the file converters. When it finishes, open `http://<server-ip>:51480` from a computer on the same network. A setup page asks for a workspace name and an administrator account, and then you are in the workspace.
+When it finishes it prints the address, such as `http://192.168.1.20:51480`. Open it from a computer on the same network. A setup page asks for a workspace name and an administrator account, and then you are in the workspace. Everything else is on the **Settings** page.
 
 To put a screen on it, set the Cast Pro to Web mode and give it the display address shown on the **Displays** page, for example `http://<server-ip>:51480/display/lobby-1`. You never need to change that address again.
 
-Everything else is on the **Settings** page. No `.env` file is needed.
+### Update, back up, restore, uninstall
 
-| To do this | Run or change this |
+```sh
+# Update to the latest version (backs up the database and settings first)
+curl -fsSL https://raw.githubusercontent.com/xattribution/signage-portal/main/install.sh | sudo bash -s update
+
+# Back up everything to /var/backups/signage
+curl -fsSL https://raw.githubusercontent.com/xattribution/signage-portal/main/install.sh | sudo bash -s backup
+
+# Restore a backup on this server or a new one (installs the portal first if needed)
+curl -fsSL https://raw.githubusercontent.com/xattribution/signage-portal/main/install.sh | sudo bash -s restore /var/backups/signage/<backup-file>.tar
+
+# Uninstall (your data is kept; add --purge to delete it, which makes a final backup first)
+curl -fsSL https://raw.githubusercontent.com/xattribution/signage-portal/main/install.sh | sudo bash -s uninstall
+```
+
+After the first install the same commands are also available as `sudo signage update`, `sudo signage backup`, `sudo signage restore <file>` and `sudo signage uninstall`.
+
+A backup is a single `.tar` file. It holds the database (accounts, settings, streams, displays and schedules), the secret key, all uploaded and converted content, your `.env`, the NAS settings and credentials in `/etc/signage`, and the systemd units. It works the same for the quick-start install and for NAS storage. To move to a new server, copy the file across and run the restore command there. The file contains password hashes and NAS credentials, so keep it somewhere private.
+
+### Common changes
+
+| To do this | Do this |
 |---|---|
-| Use a different port | `SIGNAGE_PORT=52000 docker compose up -d` |
+| Use a different port | Put `SIGNAGE_PORT=52000` in `/opt/signage/.env`, then run the update command |
 | Reach it by a name such as `signage.office.lan` | Add the name under **Settings → Access names** (IP addresses always work) |
-| Require a code on the setup page | Start it the first time with `SETUP_TOKEN=your-code docker compose up -d` |
-| Update to the latest version | `git pull && docker compose up -d --build` |
-| Stop it | `docker compose down` (your data stays in Docker volumes) |
+| Require a code on the setup page | Put `SETUP_TOKEN=your-code` in `/opt/signage/.env` before the first visit, then run the update command |
 | Add HTTPS, NAS storage, Cloudflare or systemd startup | Follow [Installation](docs/INSTALL.md) |
+| Run it without the installer | `git clone https://github.com/xattribution/signage-portal.git && cd signage-portal && docker compose up -d` |
 
-The quick start serves plain HTTP on your network. Sign-in cookies switch to secure mode automatically when the portal is reached over HTTPS, so put it behind a TLS proxy before using it outside a trusted network.
+The portal serves plain HTTP on your network. Sign-in cookies switch to secure mode automatically when the portal is reached over HTTPS, so put it behind a TLS proxy before using it outside a trusted network.
 
 **Staging candidate.** Source and local test evidence are included. A clean release build, NAS reboot testing and physical-display acceptance remain required. No UniFi controller API integration is included.
 

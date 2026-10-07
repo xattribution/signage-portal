@@ -25,7 +25,7 @@ cp .env.example .env
 chmod 600 .env
 ```
 
-Edit the following settings. The complete set is documented in `.env.example` and read in `web/app/config.py`. Production uses host paths, so every Compose command adds `-f docker-compose.host-storage.yml`. Settings you put in `.env` are locked on the portal's Settings page.
+Edit the following settings. The complete set is documented in `.env.example` and read in `web/app/config.py`. Production uses host paths, so every Compose command adds `-f docker-compose.host-storage.yml`. Setting `COMPOSE_FILE=docker-compose.yml:docker-compose.host-storage.yml:docker-compose.nas.yml` in `.env` does that automatically, and it is how `sudo signage backup` and `restore` know to save and restore your host and NAS folders. Settings you put in `.env` are locked on the portal's Settings page.
 
 | Setting | What to supply |
 |---|---|
