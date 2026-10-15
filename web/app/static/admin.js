@@ -495,9 +495,16 @@ async function deleteStream(s) {
 function renderLibrary() {
   const q = $("#lib-filter").value.trim().toLowerCase();
   const kind = $("#lib-kind").value;
-  const list = S.uploads.filter(u => (!kind || u.kind === kind) && (!q || u.title.toLowerCase().includes(q) || u.original_name.toLowerCase().includes(q)));
+  const mine = libScope() === "mine";
+  const me = S.me.username.toLowerCase();
+  const list = S.uploads.filter(u => (!kind || u.kind === kind) && (!mine || (u.created_by || "").toLowerCase() === me)
+    && (!q || u.title.toLowerCase().includes(q) || u.original_name.toLowerCase().includes(q) || (u.sender || "").includes(q)));
   const root = $("#library");
-  if (!list.length) { root.replaceChildren(h("div", { class: "none", style: { gridColumn: "1 / -1" } }, q || kind ? "No content matches these filters." : "Your library is ready. Upload the first piece of content above.")); return; }
+  if (!list.length) {
+    const empty = q || kind ? "No content matches these filters." : mine ? "Nothing here yet. Files you upload or email in appear here." : "Your library is ready. Upload the first piece of content above.";
+    root.replaceChildren(h("div", { class: "none", style: { gridColumn: "1 / -1" } }, empty));
+    return;
+  }
 
   root.replaceChildren(...list.map(u => {
     const usedOn = [...new Set(S.placements.filter(p => p.upload_id === u.id).map(p => p.stream_id))];
@@ -512,7 +519,8 @@ function renderLibrary() {
     return h("div", { class: "card" },
       h("div", { class: "thumb" }, inner, u.status === "ready" ? h("span", { class: "badge" }, badge) : null),
       h("div", { class: "t", title: u.original_name }, u.title),
-      h("div", { class: "m" }, `${u.created_by || ""} · ${fmtDate(u.created_at)}`),
+      h("div", { class: "m" }, u.via === "email" ? h("span", { class: "via", title: `Emailed in by ${u.sender || u.created_by}` }, "Emailed") : null,
+        `${u.created_by || ""} · ${fmtDate(u.created_at)}`),
       usedOn.length ? h("div", { class: "dots", title: usedOn.map(id => id === null ? "All streams" : streamName(id)).join(", ") },
         usedOn.map(id => h("span", { style: { "--sc": id === null ? "var(--warn)" : streamColor(id) } }))) : null,
       h("div", { class: "acts" },
@@ -522,6 +530,16 @@ function renderLibrary() {
         u.kind !== "feed" ? h("button", { class: "link", onclick: () => sharedFolders(u) }, "Export") : null,
         h("button", { class: "link danger", onclick: () => deleteUpload(u, usedOn.length) }, "Delete")));
   }));
+}
+
+// "Mine" narrows the shared library to what the signed-in account added, including email-in.
+function libScope() {
+  if (!S || S.me.provider === "none") return "all";
+  return $("#lib-scope button.on")?.dataset.scope || "all";
+}
+function setLibScope(scope) {
+  $("#lib-scope").querySelectorAll("button").forEach(b => { const on = b.dataset.scope === scope; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+  try { localStorage.setItem("lib-scope", scope); } catch { /* storage may be blocked */ }
 }
 
 // External addresses are server-approved sources, never arbitrary server fetches.
@@ -804,13 +822,42 @@ async function renderActivity() {
 async function renderUsers() {
   const rows = await api("GET", "/api/users");
   $("#users").replaceChildren(
-    h("thead", null, h("tr", null, h("th", null, "Username"), h("th", null, "Created"), h("th", null, ""))),
+    h("thead", null, h("tr", null, h("th", null, "Username"), h("th", null, "Email"),
+      h("th", null, "Email-in", h("span", { class: "i", "data-tip": "Accounts with email-in on can email attachments to the portal mailbox from this address. Turn the mailbox on in Settings." }, "i")),
+      h("th", null, "Created"), h("th", null, ""))),
     h("tbody", null, rows.map(u => h("tr", null,
       h("td", null, u.username + (u.username.toLowerCase() === S.me.username.toLowerCase() ? " (you)" : "")),
+      h("td", null, u.email || h("span", { class: "muted" }, "—")),
+      h("td", null, u.email_in ? "On" : h("span", { class: "muted" }, "Off")),
       h("td", null, new Date(u.created_at).toLocaleDateString("en-US")),
-      h("td", { style: { textAlign: "right" } },
+      h("td", { style: { textAlign: "right", whiteSpace: "nowrap" } },
+        h("button", { class: "link", onclick: () => editUserEmail(u) }, "Email"), "  ",
         h("button", { class: "link", onclick: () => resetPassword(u) }, "Set password"), "  ",
         h("button", { class: "link danger", onclick: () => deleteUser(u) }, "Delete"))))));
+}
+
+function emailFields(email = "", on = false) {
+  const addr = h("input", { type: "email", maxlength: 254, autocomplete: "off", value: email, placeholder: "name@company.com" });
+  const allow = h("input", { type: "checkbox", checked: on });
+  return { addr, allow, node: h("div", { style: { display: "grid", gap: "14px" } },
+    h("div", { class: "field" }, h("label", null, "Email"), addr),
+    h("label", { class: "check" }, allow, "Allow email-in from this address")) };
+}
+function editUserEmail(u) {
+  const f = emailFields(u.email || "", !!u.email_in);
+  const err = h("div", { class: "err-text", role: "alert" });
+  modal({
+    title: `Email · ${u.username}`,
+    body: h("div", { style: { display: "grid", gap: "14px" } }, f.node, err),
+    actions: [
+      c => h("button", { class: "btn", onclick: () => c() }, "Cancel"),
+      c => h("button", { class: "btn primary", onclick: async ev => {
+        ev.currentTarget.disabled = true;
+        try { await api("PATCH", `/api/users/${u.id}`, { email: f.addr.value.trim(), email_in: f.allow.checked }); c(); toast("Email saved"); renderUsers(); }
+        catch (e) { err.textContent = e.message; ev.target.disabled = false; }
+      } }, "Save email"),
+    ],
+  });
 }
 
 // ---- Settings -------------------------------------------------------------
@@ -869,6 +916,80 @@ async function renderSettings() {
   };
 }
 
+// ---- Email-in ---------------------------------------------------------------
+// A mailbox the portal checks for attachments from approved senders. Imports go to the
+// library only; someone still places them on a stream.
+async function renderMail() {
+  const m = await api("GET", "/api/mail");
+  const form = $("#mail-form");
+  const tip = text => h("span", { class: "i", "data-tip": text }, "i");
+  const row = (label, control, tipText) => h("div", { class: "setting-row" }, h("label", { for: control.id || null }, label, tipText ? tip(tipText) : null), control);
+  const toggle = (id, on, labels = ["On", "Off"]) => {
+    const group = h("div", { class: "seg solid", role: "radiogroup", id });
+    for (const [value, text] of [[true, labels[0]], [false, labels[1]]]) group.append(h("button", { type: "button", role: "radio", class: value === on ? "on" : "",
+      "aria-checked": String(value === on), "data-value": String(value),
+      onclick: ev => group.querySelectorAll("button").forEach(b => { const sel = b === ev.currentTarget; b.classList.toggle("on", sel); b.setAttribute("aria-checked", String(sel)); }) }, text));
+    return group;
+  };
+  const picked = group => group.querySelector("button.on")?.dataset.value === "true";
+  const enabled = toggle("mail-enabled", m.enabled);
+  const user = h("input", { id: "mail-user", type: "text", inputmode: "email", maxlength: 254, autocomplete: "off", spellcheck: "false", value: m.username, placeholder: "signage.inbox@gmail.com" });
+  const pass = h("input", { id: "mail-pass", type: "password", maxlength: 256, autocomplete: "new-password", placeholder: m.password_set ? "Saved. Type to replace it." : "16-character app password" });
+  const host = h("input", { id: "mail-host", type: "text", maxlength: 253, spellcheck: "false", value: m.host });
+  const port = h("input", { id: "mail-port", type: "number", min: 1, max: 65535, value: m.port });
+  const every = h("select", { id: "mail-every" }, ...[1, 2, 5, 15].map(n => h("option", { value: n, selected: n === m.poll_minutes }, n === 1 ? "Every minute" : `Every ${n} minutes`)));
+  const verified = toggle("mail-verified", m.require_verified, ["Required", "Off"]);
+  const senders = h("textarea", { id: "mail-senders", rows: 3, spellcheck: "false", autocapitalize: "none", placeholder: "kiosk@partner.org" }, m.senders.join("\n"));
+  const err = h("div", { class: "err-text", role: "alert" });
+  const save = h("button", { class: "btn primary", type: "submit" }, "Save email-in");
+  const check = h("button", { class: "btn", type: "button", disabled: !m.enabled }, "Check now");
+  const st = m.status || {};
+  const state = !m.enabled ? "Off" : st.last_error ? `Last check failed: ${st.last_error}` : st.last_ok_at ? `Checked ${fmtAgo(st.last_ok_at)}` : "Waiting for the first check";
+  const stateLine = h("span", { class: st.last_error && m.enabled ? "err-text inline" : "muted" }, state);
+  const log = m.recent.length ? h("div", { class: "table-wrap" }, h("table", { class: "grid compact" },
+    h("caption", { class: "sr-only" }, "Recent email-in messages"),
+    h("thead", null, h("tr", null, h("th", null, "When"), h("th", null, "From"), h("th", null, "Result"))),
+    h("tbody", null, m.recent.map(r => h("tr", null,
+      h("td", { class: "mono", style: { whiteSpace: "nowrap" } }, fmtDate(r.at)),
+      h("td", null, r.sender || "—"),
+      h("td", null, h("span", { class: r.status === "imported" ? "ok-text" : "err-text inline" }, r.status === "imported" ? "Imported" : "Not imported"), " ", r.detail || "")))))) : null;
+
+  form.replaceChildren(
+    row("Email-in", enabled, "Approved people email attachments to this mailbox. The portal imports them into the library and their Mine view. Nothing goes on a stream until someone places it."),
+    row("Mailbox address", user, "The address people send to. For Gmail, create a dedicated account for the portal."),
+    row("App password", pass, "Gmail: turn on 2-Step Verification, then create an app password at myaccount.google.com/apppasswords. It is stored encrypted."),
+    row("IMAP server", h("div", { class: "inline-fields" }, host, port), "Gmail uses imap.gmail.com on port 993."),
+    row("Check", every),
+    row("Sender verification", verified, "Required: the mail server must confirm the sender with DMARC or DKIM, so a forged From address is not imported. Turn off only for a mail server that does not add these results."),
+    row("Other approved senders", senders, "Addresses without a portal account, one per line. Accounts are approved on the Users page."),
+    row("Status", h("div", { class: "inline-fields" }, stateLine, check)),
+    err, h("div", { class: "setting-actions" }, save), log);
+
+  check.onclick = async () => {
+    check.disabled = true; check.textContent = "Checking…";
+    try {
+      const r = await api("POST", "/api/mail/check");
+      toast(r.ok ? (r.imported ? `Imported ${r.imported} file${r.imported === 1 ? "" : "s"}` : "No new mail") : r.error, !r.ok);
+      if (r.imported) await refresh(true);
+      await renderMail();
+    } catch (e) { toast(e.message, true); check.disabled = false; check.textContent = "Check now"; }
+  };
+  form.onsubmit = async event => {
+    event.preventDefault();
+    err.textContent = "";
+    const changes = {
+      enabled: picked(enabled), username: user.value.trim(), host: host.value.trim(), port: parseInt(port.value, 10),
+      poll_minutes: parseInt(every.value, 10), require_verified: picked(verified),
+      senders: senders.value.split(/[\s,;]+/).filter(Boolean),
+    };
+    if (pass.value) changes.password = pass.value;
+    save.disabled = true;
+    try { await api("PATCH", "/api/mail", changes); toast("Email-in saved"); await refresh(true); await renderMail(); }
+    catch (e) { err.textContent = e.message; }
+    finally { save.disabled = false; }
+  };
+}
+
 async function resetPassword(u) {
   const pw = await promptBox(`Set password · ${u.username}`, "New password (12+ characters)", "", { type: "password", max: 128 });
   if (!pw) return;
@@ -881,17 +1002,18 @@ async function deleteUser(u) {
 function newUserDialog() {
   const user = h("input", { type: "text", maxlength: 64, autocomplete: "off" });
   const pw = h("input", { type: "password", maxlength: 128, autocomplete: "new-password" });
-  const err = h("div", { class: "err-text" });
+  const f = emailFields();
+  const err = h("div", { class: "err-text", role: "alert" });
   modal({
     title: "Add user",
     body: h("div", { style: { display: "grid", gap: "14px" } },
       h("div", { class: "field" }, h("label", null, "Username"), user),
-      h("div", { class: "field" }, h("label", null, "Password (12+ characters)"), pw), err),
+      h("div", { class: "field" }, h("label", null, "Password (12+ characters)"), pw), f.node, err),
     actions: [
       c => h("button", { class: "btn", onclick: () => c() }, "Cancel"),
       c => h("button", {
         class: "btn primary", onclick: async () => {
-          try { await api("POST", "/api/users", { username: user.value.trim(), password: pw.value }); c(); toast("User added"); renderUsers(); }
+          try { await api("POST", "/api/users", { username: user.value.trim(), password: pw.value, email: f.addr.value.trim(), email_in: f.allow.checked }); c(); toast("User added"); renderUsers(); }
           catch (e) { err.textContent = e.message; }
         },
       }, "Add"),
@@ -919,6 +1041,9 @@ function status() {
   $("#worker-down").hidden = S.worker_alive;
   $("#tab-users").hidden = !S.manages_users;
   $("#library-count").textContent = S.uploads.length;
+  $("#lib-scope").hidden = S.me.provider === "none";
+  $("#mail-hint").hidden = !S.mail_in?.enabled;
+  if (S.mail_in?.enabled) $("#mail-hint-tip").dataset.tip = `Email files to ${S.mail_in.address} from an approved address. They land here and in your Mine view. Place them from the library when you are ready.`;
   const online = S.displays.filter(d => d.online).length;
   $("#display-summary").textContent = `${online} of ${S.displays.length} displays online`;
   $("#display-summary").classList.toggle("incomplete", online < S.displays.length || online === 0);
@@ -1024,7 +1149,7 @@ function show(v) {
   if (!S) return;
   if (v === "activity") renderActivity().catch(error => toast(error.message, true));
   else if (v === "users") renderUsers().catch(error => toast(error.message, true));
-  else if (v === "settings") renderSettings().catch(error => toast(error.message, true));
+  else if (v === "settings") { renderSettings().catch(error => toast(error.message, true)); renderMail().catch(error => toast(error.message, true)); }
   render(true);
   if (v === "library") refreshTransfers();
 }
@@ -1038,6 +1163,12 @@ function wireTips() {
     tip.style.left = Math.max(8, Math.min(window.innerWidth - tip.offsetWidth - 8, rect.left)) + "px";
     tip.style.top = Math.min(window.innerHeight - tip.offsetHeight - 8, rect.bottom + 8) + "px";
   }
+  // Every (i) must be reachable by keyboard, including ones added later by dialogs.
+  const focusable = () => document.querySelectorAll(".i[data-tip]:not([tabindex])").forEach(el => {
+    el.tabIndex = 0; el.setAttribute("role", "img"); el.setAttribute("aria-label", el.dataset.tip);
+  });
+  focusable();
+  new MutationObserver(focusable).observe(document.body, { childList: true, subtree: true });
   document.addEventListener("mouseover", showTip); document.addEventListener("focusin", showTip);
   document.addEventListener("focusout", () => { tip.style.display = "none"; });
   document.addEventListener("keydown", e => { if (e.key === "Escape") tip.style.display = "none"; });
@@ -1132,6 +1263,13 @@ function init() {
   input.addEventListener("change", () => { uploadFiles(input.files); input.value = ""; });
   $("#lib-filter").addEventListener("input", () => { if (S) renderLibrary(); });
   $("#lib-kind").addEventListener("change", () => { if (S) renderLibrary(); });
+  try { if (localStorage.getItem("lib-scope") === "mine") setLibScope("mine"); } catch { /* storage may be blocked */ }
+  $("#lib-scope").addEventListener("click", ev => {
+    const b = ev.target.closest("button[data-scope]");
+    if (!b) return;
+    setLibScope(b.dataset.scope);
+    if (S) renderLibrary();
+  });
   const library = $("#view-library");
   library.addEventListener("dragover", e => { if (e.dataTransfer.types.includes("Files")) { e.preventDefault(); zone.classList.add("hot"); } });
   library.addEventListener("dragleave", e => { if (!library.contains(e.relatedTarget)) zone.classList.remove("hot"); });

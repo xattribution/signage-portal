@@ -70,6 +70,13 @@ class PlacementPatch(InputModel):
 class NewUser(InputModel):
     username: str = Field(min_length=2, max_length=64, pattern=r"^[A-Za-z0-9._@-]+$")
     password: str = Field(min_length=1, max_length=128)
+    email: str = Field(default="", max_length=254)
+    email_in: bool = False
+
+
+class UserPatch(InputModel):
+    email: str | None = Field(default=None, max_length=254)
+    email_in: bool | None = None
 
 
 class SetupBody(InputModel):

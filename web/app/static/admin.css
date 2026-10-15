@@ -2120,3 +2120,20 @@ table.grid .link {
 .setting-row>.seg { justify-self:start; }
 .login-form h1+.field { margin-top:12px; }
 .login-form .field[hidden]+.err-text:empty { display:none; }
+
+/* ---- Email-in ------------------------------------------------------------ */
+.settings-section { font-size:15px; font-weight:600; margin:36px 0 0; }
+.inline-fields { display:flex; gap:10px; align-items:center; flex-wrap:wrap; min-width:0; }
+.inline-fields input[type=text] { flex:1 1 200px; max-width:260px; }
+.inline-fields input[type=number] { width:90px; }
+.setting-row input[type=password] { width:100%; max-width:360px; }
+.setting-row select { justify-self:start; }
+.err-text.inline, .settings-form .err-text.inline { display:inline; padding:0; }
+.ok-text { color:var(--green); font-weight:500; }
+.muted { color:var(--muted); }
+.grid.compact td, .grid.compact th { padding-top:6px; padding-bottom:6px; font-size:12px; }
+#mail-form .table-wrap { margin-top:20px; }
+label.check { display:flex; align-items:center; gap:8px; font-size:13px; cursor:pointer; }
+.mail-hint { display:inline-flex; align-items:center; font-size:12px; color:var(--muted); }
+.card .via { display:inline-block; margin-right:6px; padding:0 5px; border-radius:3px; background:var(--ink); color:var(--surface); font-size:10px; font-weight:600; line-height:16px; }
+#lib-scope[hidden] { display:none; }
