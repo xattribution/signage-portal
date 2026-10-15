@@ -8,7 +8,7 @@
   #stage > .on { opacity: 1; }
   #clock {
     position: fixed; display: none; color: #d8dce2; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    text-align: left; transition: left 2s ease, top 2s ease; white-space: nowrap;
+    left: 0; top: 0; text-align: left; transition: transform 600ms ease-out; white-space: nowrap;
   }
   #clock .t { font-size: 14vh; font-weight: 200; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
   #clock .d { font-size: 3.6vh; color: #7d8590; margin-top: 1.4vh; letter-spacing: .04em; }

@@ -106,6 +106,15 @@ CREATE INDEX IF NOT EXISTS ix_place_stream ON placements(stream_id, mode, positi
 CREATE TABLE IF NOT EXISTS retired_display_slugs (slug TEXT PRIMARY KEY);
 -- Portal-editable settings (Settings page). Environment variables, when set, take precedence.
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS email_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    at         INTEGER NOT NULL,
+    message_id TEXT,
+    sender     TEXT,
+    subject    TEXT,
+    status     TEXT NOT NULL,
+    detail     TEXT
+);
 CREATE TABLE IF NOT EXISTS library_transfers (
     id TEXT PRIMARY KEY,
     direction TEXT NOT NULL,
@@ -214,6 +223,17 @@ def init() -> None:
             conn.execute("ALTER TABLE uploads ADD COLUMN feed_kind TEXT")
         if "transfer_key" not in upload_cols:
             conn.execute("ALTER TABLE uploads ADD COLUMN transfer_key TEXT")
+        if "via" not in upload_cols:
+            conn.execute("ALTER TABLE uploads ADD COLUMN via TEXT")
+        if "sender" not in upload_cols:
+            conn.execute("ALTER TABLE uploads ADD COLUMN sender TEXT")
+        user_cols = {r[1] for r in conn.execute("PRAGMA table_info(users)")}
+        if "email" not in user_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
+        if "email_in" not in user_cols:
+            conn.execute("ALTER TABLE users ADD COLUMN email_in INTEGER NOT NULL DEFAULT 0")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_email_log_msg ON email_log(message_id)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_email ON users(lower(email)) WHERE email IS NOT NULL")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_transfer_key ON uploads(transfer_key)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_stream_key ON streams(playback_key)")
         conn.commit()

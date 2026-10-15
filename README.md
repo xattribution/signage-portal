@@ -47,6 +47,16 @@ A backup is a single `.tar` file. It holds the database (accounts, settings, str
 | Add HTTPS, NAS storage, Cloudflare or systemd startup | Follow [Installation](docs/INSTALL.md) |
 | Run it without the installer | `git clone https://github.com/xattribution/signage-portal.git && cd signage-portal && docker compose up -d` |
 
+### Email-in (when uploads are blocked)
+
+Some corporate proxies block browser uploads. Email-in lets approved people email files to a mailbox instead. The portal checks the mailbox, imports each attachment through the same checks and converter as an upload, and adds it to the shared library and the sender's **Mine** view. Nothing goes on a stream until someone places it.
+
+1. Create a Gmail account just for the portal, turn on 2-Step Verification, then create an app password at [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+2. In **Settings → Email-in**, enter the address and app password, then turn **Import mail** on.
+3. In **Users**, add each person's email and turn on email-in. People without an account can go under **Other approved senders**.
+
+Mail is imported only when the sender is approved, Gmail confirms the sender with DMARC or DKIM, and the message is addressed to the portal mailbox. Every message, imported or not, is listed under Settings with the reason.
+
 The portal serves plain HTTP on your network. Sign-in cookies switch to secure mode automatically when the portal is reached over HTTPS, so put it behind a TLS proxy before using it outside a trusted network.
 
 **Staging candidate.** Source and local test evidence are included. A clean release build, NAS reboot testing and physical-display acceptance remain required. No UniFi controller API integration is included.

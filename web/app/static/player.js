@@ -39,6 +39,7 @@
   var edgeTimer = null;
 
   var cur = null;            // { key, slideId, el, kind }
+  var visible = null;        // the element currently on screen (cur may still be loading)
   var prepared = {};         // key -> element (next item, preloaded)
   var lastSeek = 0;
 
@@ -104,7 +105,7 @@
       // Source policy changes also require a fresh response CSP. Save before
       // reload to avoid a stale-cache reload loop; ordinary content edits do not reload.
       try { localStorage.setItem(cacheKey, JSON.stringify(s)); } catch (_) {}
-      location.reload(); return;
+      reloadWhenHealthy(); return;
     }
     if (!fromCache) haveNetworkState = true;
     if (s.poll_seconds) pollMs = Math.max(2, Math.min(60, s.poll_seconds)) * 1000;
@@ -272,9 +273,38 @@
     return el;
   }
 
+  // Start a transition only once the incoming media can paint, so a slide never
+  // slides or fades in as a black panel over a good frame. Capped so a slow source
+  // cannot stall the rotation.
+  function whenReady(el, cb) {
+    var done = false;
+    function go() { if (!done) { done = true; clearTimeout(cap); cb(); } }
+    var cap = setTimeout(go, 1500);
+    if (el.tagName === 'IMG') {
+      if (el.complete && el.naturalWidth) go();
+      else if (el.decode) el.decode().then(go, go);
+      else { el.addEventListener('load', go); el.addEventListener('error', go); }
+    } else if (el.tagName === 'VIDEO') {
+      if (el.readyState >= 2) go();
+      else { el.addEventListener('loadeddata', go); el.addEventListener('error', go); }
+    } else go();
+  }
+
+  function showMedia(el, prev, item) {
+    if (!visible || visible._released) { switchMedia(el, prev, item); return; }
+    whenReady(el, function () {
+      if (cur && cur.el === el && !el._released) switchMedia(el, prev, item);
+      else if (!el._released && (!cur || cur.el !== el)) release(el);  // superseded before it was shown
+    });
+  }
+
   function switchMedia(el, prev, item) {
     var ms = Math.min(fadeMs, Math.floor(item.duration_ms / 2));
     if (overlay && overlay.reduced()) ms = 0;
+    var shown = visible && visible !== el && !visible._released ? { el: visible } : null;
+    if (prev && prev.el !== el && (!shown || prev.el !== shown.el) && !prev.el._released) release(prev.el);
+    prev = shown;
+    visible = el;
     el.style.transition = 'none';
     el.classList.add('on');
     if (prev) { prev.el.style.transition = 'none'; prev.el.style.zIndex = '0'; }
@@ -296,7 +326,7 @@
   function clearStage() {
     clearPrepared();
     while (stage.firstChild) release(stage.firstChild);
-    cur = null;
+    cur = null; visible = null;
   }
 
   function locate(now) {
@@ -344,8 +374,7 @@
     if (clockEl.style.display !== "block") { clockEl.style.display = "block"; clockMoved = 0; }
     clockEl.style.textAlign = appearance && appearance.screensaver.asset_url ? 'center' : 'left';
     if (appearance && appearance.screensaver.asset_url && state && state.mode === 'clock') {
-      clockEl.style.left = Math.max(20, (window.innerWidth - clockEl.offsetWidth) / 2) + 'px';
-      clockEl.style.top = (window.innerHeight * .62) + 'px';
+      placeClock(Math.max(20, (window.innerWidth - clockEl.offsetWidth) / 2), window.innerHeight * .62);
       return;
     }
     // Small periodic position changes reduce static dwell; they do not guarantee burn-in prevention.
@@ -355,9 +384,13 @@
       var topSafe = appearance && appearance.top.enabled ? appearance.top.height_pct / 100 * window.innerHeight : 0;
       var bottomSafe = appearance && appearance.bottom.enabled ? appearance.bottom.height_pct / 100 * window.innerHeight : 0;
       var maxY = Math.max(0, window.innerHeight - clockEl.offsetHeight - 40 - topSafe - bottomSafe);
-      clockEl.style.left = (20 + Math.random() * maxX) + "px";
-      clockEl.style.top = (20 + topSafe + Math.random() * maxY) + "px";
+      placeClock(20 + Math.random() * maxX, 20 + topSafe + Math.random() * maxY);
     }
+  }
+
+  function placeClock(x, y) {
+    var t = 'translate(' + Math.round(x) + 'px,' + Math.round(y) + 'px)';
+    if (clockEl.style.transform !== t) clockEl.style.transform = t;
   }
 
   function tick(force) {
@@ -370,9 +403,10 @@
     else if (clockEl.style.display === "block") clockEl.style.display = "none";
     if (!state || !state.items.length || !total) {
       if (cur) {
-        var old = cur.el; old.classList.remove("on");
-        setTimeout(function () { release(old); }, fadeMs + 50);
-        cur = null;
+        var old = cur.el, oldShown = visible; old.classList.remove("on");
+        if (oldShown) oldShown.classList.remove("on");
+        setTimeout(function () { release(old); if (oldShown && oldShown !== old) release(oldShown); }, fadeMs + 50);
+        cur = null; visible = null;
       }
       return;
     }
@@ -400,7 +434,7 @@
         else if (/^(hls|remote_video)$/.test(item.kind)) resumeVideo(el);
         var prev = cur;
         cur = { key: key, slideId: item.slide_id, url: item.url, el: el, kind: item.kind };
-        switchMedia(el, prev, item);
+        showMedia(el, prev, item);
       }
       prepareNext(loc);
     } else if (cur.kind === "video") {
@@ -443,16 +477,20 @@
   }
 
   // ---- housekeeping ------------------------------------------------------
+  // Reload only when the server answers, so a display never lands on a browser error page.
+  function reloadWhenHealthy(retry) {
+    var x = new XMLHttpRequest();
+    x.open("GET", "/healthz", true); x.timeout = 10000;
+    x.onload = function () { if (x.status === 200) location.reload(); else setTimeout(function () { reloadWhenHealthy(true); }, 30000); };
+    x.onerror = x.ontimeout = function () { setTimeout(function () { reloadWhenHealthy(true); }, 30000); };
+    try { x.send(); } catch (_) { if (!retry) location.reload(); }
+  }
   function nightlyReload() {
     // Signage runs for weeks; a daily reload at 03:00 clears any browser leaks.
     var now = new Date();
     var next = new Date(now); next.setHours(3, 0, 0, 0);
     if (next <= now) next.setDate(next.getDate() + 1);
-    setTimeout(function () {
-      fetch("/healthz", { cache: "no-store" })
-        .then(function (r) { if (r.ok) location.reload(); else nightlyReload(); })
-        .catch(nightlyReload);
-    }, next - now);
+    setTimeout(function () { reloadWhenHealthy(); }, next - now);
   }
 
   if (!endpoint) { message("Unknown player URL"); return; }

@@ -14,10 +14,10 @@ from starlette.concurrency import run_in_threadpool
 from starlette.datastructures import UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from .schemas import (StreamBody, StreamPatch, OrderBody, DisplayBody, UploadPatch, PlacementBody, PlacementPatch, NewUser, NewPassword, SetupBody)
+from .schemas import (StreamBody, StreamPatch, OrderBody, DisplayBody, UploadPatch, PlacementBody, PlacementPatch, NewUser, NewPassword, SetupBody, UserPatch)
 from .security import BoundaryMiddleware
 
-from . import auth, config, db, jobs, playlist, feeds, shares, presentation, settings
+from . import auth, config, db, jobs, playlist, feeds, shares, presentation, settings, mailin
 from .auth import CurrentUser
 from .auth.base import Principal
 from .auth.local import hash_password, validate_new_password
@@ -33,10 +33,12 @@ async def lifespan(_app):
     shares.load_config()
     shares.start()
     jobs.start()
+    mailin.start()
     print(f"[portal] auth chain: {', '.join(config.AUTH_MODE)} | media: {config.MEDIA_DIR}", flush=True)
     try:
         yield
     finally:
+        mailin.stop()
         jobs.stop()
         shares.stop()
 
@@ -56,10 +58,20 @@ app.include_router(shares.router)
 app.include_router(presentation.router)
 
 
+def _friendly(error: dict) -> str:
+    msg = str(error.get("msg", "")).removeprefix("Value error, ")
+    field = next((str(x) for x in reversed(error.get("loc", ())) if isinstance(x, str) and x != "body"), "")
+    if field and msg.startswith("Input should be"):
+        return field.replace("_", " ").capitalize() + " must be" + msg.removeprefix("Input should be")
+    if field and msg.startswith(("String should", "List should", "Field required")):
+        return f"{field.replace('_', ' ').capitalize()}: {msg[0].lower() + msg[1:]}"
+    return msg
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error(_request, exc):
     # Do not echo passwords, upload metadata or rejected request bodies in errors.
-    detail = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    detail = [{"loc": list(e["loc"]), "msg": _friendly(e), "type": e["type"]} for e in exc.errors()]
     return JSONResponse({"detail": detail}, status_code=422)
 
 
@@ -359,6 +371,7 @@ def overview(request: Request, me: Principal = CurrentUser):
         "worker_alive": jobs.worker_alive(),
         "clock_24h": config.CLOCK_24H,
         "manages_users": auth.manages_users(),
+        "mail_in": mailin.summary(),
         "server_time_ms": now,
         "default_slide_seconds": config.DEFAULT_SLIDE_SECONDS,
         "max_upload_mb": config.MAX_UPLOAD_MB,
@@ -629,6 +642,34 @@ def delete_placement(pid: int, me: Principal = CurrentUser):
     return {"ok": True}
 
 
+# ---- Email-in ----------------------------------------------------------------
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return RedirectResponse("/static/icon.svg", status_code=301)
+
+
+@app.get("/api/mail")
+def get_mail(me: Principal = CurrentUser):
+    return mailin.public()
+
+
+@app.patch("/api/mail")
+async def patch_mail(request: Request, me: Principal = CurrentUser):
+    try:
+        changes = await request.json()
+    except ValueError as exc:
+        raise HTTPException(400, "Send the settings as JSON.") from exc
+    out = await run_in_threadpool(mailin.save, changes)
+    db.audit(me.username, "changed email-in settings: " + ", ".join(sorted(str(k)[:20] for k in changes)))
+    return out
+
+
+@app.post("/api/mail/check")
+async def check_mail(me: Principal = CurrentUser):
+    result = await run_in_threadpool(mailin.poll_once, 45)
+    return {**result, "mail": mailin.public()}
+
+
 # ---- Users (local auth only) -----------------------------------------------
 def _users_enabled():
     if not auth.manages_users():
@@ -638,7 +679,19 @@ def _users_enabled():
 @app.get("/api/users")
 def list_users(me: Principal = CurrentUser):
     _users_enabled()
-    return db.rows("SELECT id, username, created_at FROM users ORDER BY username COLLATE NOCASE")
+    return db.rows("SELECT id, username, email, email_in, created_at FROM users ORDER BY username COLLATE NOCASE")
+
+
+def _clean_user_email(value: str, uid: int | None = None) -> str | None:
+    value = (value or "").strip().lower()
+    if not value:
+        return None
+    if not mailin.valid_email(value):
+        raise HTTPException(400, "Enter a valid email address.")
+    clash = db.row("SELECT username FROM users WHERE email=? COLLATE NOCASE AND id IS NOT ?", (value, uid))
+    if clash:
+        raise HTTPException(409, f"That email already belongs to '{clash['username']}'.")
+    return value
 
 
 @app.post("/api/users")
@@ -647,9 +700,25 @@ def add_user(body: NewUser, me: Principal = CurrentUser):
     validate_new_password(body.password)
     if db.row("SELECT id FROM users WHERE username=?", (body.username,)):
         raise HTTPException(409, "That username exists.")
-    db.execute("INSERT INTO users(username, password_hash, created_at) VALUES (?,?,?)",
-               (body.username, hash_password(body.password), db.now_ms()))
+    addr = _clean_user_email(body.email)
+    if body.email_in and not addr:
+        raise HTTPException(400, "Add an email address to allow email-in.")
+    db.execute("INSERT INTO users(username, password_hash, email, email_in, created_at) VALUES (?,?,?,?,?)",
+               (body.username, hash_password(body.password), addr, int(body.email_in), db.now_ms()))
     db.audit(me.username, f"added user '{body.username}'")
+    return {"ok": True}
+
+
+@app.patch("/api/users/{uid}")
+def update_user(uid: int, body: UserPatch, me: Principal = CurrentUser):
+    _users_enabled()
+    u = _get("users", uid)
+    addr = _clean_user_email(body.email, uid) if body.email is not None else u["email"]
+    email_in = bool(u["email_in"]) if body.email_in is None else body.email_in
+    if email_in and not addr:
+        raise HTTPException(400, "Add an email address to allow email-in.")
+    db.execute("UPDATE users SET email=?, email_in=? WHERE id=?", (addr, int(email_in), uid))
+    db.audit(me.username, f"updated '{u['username']}': email {addr or 'none'}, email-in {'on' if email_in else 'off'}")
     return {"ok": True}
 
 

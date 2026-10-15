@@ -49,5 +49,5 @@ $('#f').addEventListener('submit', async event => {
   } catch (error) {
     $('#e').textContent = error.message;
     if (error.status === 409) setTimeout(() => location.assign('/login'), 1500);
-  } finally { button.disabled = false; button.textContent = 'Finish setup →'; }
+  } finally { button.disabled = false; button.textContent = 'Finish setup'; }
 });

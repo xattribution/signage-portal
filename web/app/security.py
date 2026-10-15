@@ -102,7 +102,7 @@ class BoundaryMiddleware:
                 player_only_hosts.add(base_host)
         if hostname in player_only_hosts:
             player_asset = path in {"/static/player.js", "/static/player.css", "/static/overlay.js", "/static/overlay.css", "/static/feed.svg", "/static/vendor/hls.min.js"}
-            public_path = path.startswith(("/display/", "/stream/", "/preview/", "/api/player/", "/media/")) or path == "/healthz" or player_asset
+            public_path = path.startswith(("/display/", "/stream/", "/preview/", "/api/player/", "/media/")) or path in ("/healthz", "/favicon.ico") or player_asset
             if not public_path:
                 return await reject(404, "Not found.")
             if method not in {"GET", "HEAD", "OPTIONS"}:

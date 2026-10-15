@@ -14,7 +14,7 @@ os.environ.update(DATA_DIR=_boot.name + "/data", MEDIA_DIR=_boot.name + "/media"
                   ALLOW_INSECURE_DEV="true", COOKIE_SECURE="false", AUTH_MODE="local",
                   ADMIN_PASSWORD="test-password-only-123", ALLOWED_HOSTS="localhost,127.0.0.1,testserver",
                   INGEST_ENABLED="false", TRANSFERS_ENABLED="false")
-from app import auth, config, db
+from app import auth, config, db, mailin
 from app.main import app
 from fastapi.testclient import TestClient
 _BOOT_HASH = db.row("SELECT password_hash FROM users LIMIT 1")["password_hash"]
@@ -25,6 +25,7 @@ def storage(tmp_path, monkeypatch):
                        "DB_PATH": tmp_path / "data/signage.db", "ORIGINALS_DIR": tmp_path / "media/originals",
                        "WORK_DIR": tmp_path / "media/work", "RENDERED_DIR": tmp_path / "media/rendered"}.items():
         monkeypatch.setattr(config, key, value)
+    monkeypatch.setattr(mailin, "start", lambda: None)  # never reach a real mailbox from tests
     monkeypatch.setattr(config, "SECRET_KEY", "test-secret-not-for-deployment-1234567890")
     db.init()
     db.execute("INSERT INTO users(username,password_hash,created_at) VALUES (?,?,?)", ("admin", _BOOT_HASH, db.now_ms()))
