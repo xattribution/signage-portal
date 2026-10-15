@@ -40,7 +40,7 @@ export function toast(message, error = false) {
   const node = h('div', { class: 'toast' + (error ? ' err' : ''), role: error ? 'alert' : 'status' }, message);
   root.append(node);
   while (root.children.length > 4) root.firstChild.remove();
-  setTimeout(() => node.remove(), error ? 9000 : 4500);
+  setTimeout(() => { node.classList.add('leaving'); setTimeout(() => node.remove(), 160); }, error ? 9000 : 4500);
 }
 export function modal({ title, body, actions = [], wide = false, onClose }) {
   const previous = document.activeElement;

@@ -58,10 +58,20 @@ app.include_router(shares.router)
 app.include_router(presentation.router)
 
 
+def _friendly(error: dict) -> str:
+    msg = str(error.get("msg", "")).removeprefix("Value error, ")
+    field = next((str(x) for x in reversed(error.get("loc", ())) if isinstance(x, str) and x != "body"), "")
+    if field and msg.startswith("Input should be"):
+        return field.replace("_", " ").capitalize() + " must be" + msg.removeprefix("Input should be")
+    if field and msg.startswith(("String should", "List should", "Field required")):
+        return f"{field.replace('_', ' ').capitalize()}: {msg[0].lower() + msg[1:]}"
+    return msg
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_error(_request, exc):
     # Do not echo passwords, upload metadata or rejected request bodies in errors.
-    detail = [{"loc": list(e["loc"]), "msg": e["msg"], "type": e["type"]} for e in exc.errors()]
+    detail = [{"loc": list(e["loc"]), "msg": _friendly(e), "type": e["type"]} for e in exc.errors()]
     return JSONResponse({"detail": detail}, status_code=422)
 
 
@@ -633,6 +643,11 @@ def delete_placement(pid: int, me: Principal = CurrentUser):
 
 
 # ---- Email-in ----------------------------------------------------------------
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return RedirectResponse("/static/icon.svg", status_code=301)
+
+
 @app.get("/api/mail")
 def get_mail(me: Principal = CurrentUser):
     return mailin.public()

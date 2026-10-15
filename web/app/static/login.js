@@ -12,5 +12,5 @@ $('#f').addEventListener('submit', async event => {
   $('#e').textContent = ''; button.disabled = true; button.textContent = 'Signing in…';
   try { await api('POST', '/auth/login', { username: $('#u').value.trim(), password: $('#p').value }); location.assign('/'); }
   catch (error) { $('#e').textContent = error.message; $('#p').focus(); }
-  finally { button.disabled = false; button.textContent = 'Sign in →'; }
+  finally { button.disabled = false; button.textContent = 'Sign in'; }
 });

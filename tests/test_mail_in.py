@@ -78,6 +78,61 @@ def test_forged_header_below_the_servers_is_ignored(cfg, jpeg):
     assert mailin.process_message(m.as_bytes(), cfg)["status"] == "rejected"
 
 
+@pytest.mark.parametrize("from_header", [
+    "ana@corp.example <mallory@corp.example>",
+    "<ana@corp.example>mallory@corp.example",
+])
+def test_malformed_from_is_rejected(cfg, jpeg, from_header):
+    raw = message(jpeg).replace(b"From: ana@corp.example", b"From: " + from_header.encode())
+    assert mailin.process_message(raw, cfg)["status"] == "rejected"
+    assert uploads() == []
+
+
+@pytest.mark.parametrize("auth", [
+    'mx.google.com; spf=pass (google.com: domain of "a) ; dmarc=pass header.from=corp.example ("@evil.example) smtp.mailfrom=x; dmarc=fail header.from=corp.example',
+    'mx.google.com; spf=pass smtp.mailfrom="x; dmarc=pass header.from=corp.example "@evil.example; dmarc=fail header.from=corp.example',
+    'mx.google.com; dkim=pass header.d=sub.corp.example.evil.example; dmarc=fail header.from=corp.example',
+    'mx.google.com; dmarc=pass header.from=corp.example (unbalanced',
+])
+def test_auth_results_tricks_are_rejected(cfg, jpeg, auth):
+    assert mailin.process_message(message(jpeg, auth=auth), cfg)["status"] == "rejected"
+
+
+def test_rejected_message_id_cannot_block_the_real_one(cfg, jpeg):
+    mailin.process_message(message(jpeg, sender="mallory@else.example", auth=None), cfg)
+    assert mailin.process_message(message(jpeg), cfg)["imported"] == 1
+
+
+def test_signed_mail_sent_elsewhere_is_not_replayed(cfg, jpeg):
+    raw = message(jpeg).replace(b"To: inbox@gmail.com", b"To: attacker@evil.example")
+    assert mailin.process_message(raw, cfg)["status"] == "rejected"
+
+
+def test_account_with_email_in_off_overrides_settings_list(cfg, jpeg):
+    db.execute("UPDATE users SET email_in=0")
+    cfg["senders"] = ["ana@corp.example"]
+    assert mailin.process_message(message(jpeg), cfg)["status"] == "rejected"
+
+
+def test_multi_attachment_titles_keep_subject(cfg, jpeg):
+    m = EmailMessage()
+    m["From"], m["To"], m["Subject"], m["Message-ID"], m["Authentication-Results"] = "ana@corp.example", "inbox@gmail.com", "Week", "<multi@x>", GMAIL_OK
+    m.set_content("x")
+    for n in ("one.jpg", "two.jpg"):
+        m.add_attachment(jpeg, maintype="image", subtype="jpeg", filename=n)
+    assert mailin.process_message(m.as_bytes(), cfg)["imported"] == 2
+    assert sorted(u["title"] for u in uploads()) == ["Week: one", "Week: two"]
+
+
+def test_server_change_clears_saved_password(admin):
+    admin.patch("/api/mail", json={"username": "inbox@gmail.com", "password": "secret"}, headers=H)
+    assert admin.get("/api/mail").json()["password_set"]
+    assert admin.patch("/api/mail", json={"host": "imap.attacker.example"}, headers=H).status_code == 200
+    assert not admin.get("/api/mail").json()["password_set"]
+    admin.patch("/api/mail", json={"password": "secret"}, headers=H)
+    assert admin.patch("/api/mail", json={"enabled": True, "username": "other@gmail.com"}, headers=H).status_code == 400
+
+
 def test_verification_can_be_turned_off(cfg, jpeg):
     cfg["require_verified"] = False
     assert mailin.process_message(message(jpeg, auth=None), cfg)["imported"] == 1
@@ -144,6 +199,10 @@ def test_poll_imports_marks_read_and_reports_sign_in_errors(admin, cfg, jpeg, mo
     {"username": "not-an-email"},
     {"host": "https://imap.gmail.com"},
     {"poll_minutes": 3},
+    {"host": "10.0.0.5"},
+    {"host": "localhost"},
+    {"port": 25},
+    {"folder": "Signage-é"},
     {"senders": ["ok@a.example", "bad"]},
     {"unknown": 1},
 ])

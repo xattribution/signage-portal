@@ -84,6 +84,16 @@ def _reserve_attempt(username: str, ip: str) -> None:
                       "ON CONFLICT(bucket) DO UPDATE SET attempts=attempts+1", (bucket, now + _WINDOW_MS))
 
 
+def _settle_attempt(username: str, ip: str) -> None:
+    """A successful sign-in clears its account bucket and refunds the shared address bucket,
+    so people behind one office address are not locked out by their own logins."""
+    user_bucket, ip_bucket = [hmac.new(config.secret_key().encode(), v.encode(), hashlib.sha256).hexdigest()
+                              for v in ("user:" + username.lower(), "ip:" + ip)]
+    with db.tx() as c:
+        c.execute("DELETE FROM auth_attempts WHERE bucket=?", (user_bucket,))
+        c.execute("UPDATE auth_attempts SET attempts=MAX(0, attempts-1) WHERE bucket=?", (ip_bucket,))
+
+
 class LoginBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
     username: str = Field(min_length=1, max_length=64, pattern=r"^[A-Za-z0-9._@-]+$")
@@ -179,6 +189,7 @@ class LocalAuth(AuthProvider):
                     user["password_hash"] = new_hash
             finally:
                 _PASSWORD_WORK.release()
+            _settle_attempt(body.username, ip)
             self._issue(response, user, request)
             db.audit(user["username"], f"login from {ip[:64]}")
             return {"ok": True}

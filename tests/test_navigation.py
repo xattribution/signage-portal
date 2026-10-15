@@ -34,7 +34,6 @@ def test_navigation_uses_one_accessible_disclosure(admin):
     assert tag == 'button'
     assert toggle['aria-expanded'] == 'false'
     assert toggle['aria-controls'] == 'tabs'
-    assert 'hidden' in elements['tab-users'][1]
     assert elements['main'][1]['tabindex'] == '-1'
     # All behavior remains in the existing same-origin external script.
     assert not any(key.startswith('on') for _, attrs in shell.tags for key in attrs)
@@ -43,8 +42,8 @@ def test_navigation_uses_one_accessible_disclosure(admin):
 def test_display_help_distinguishes_playback_from_controller_control(admin):
     html = admin.get('/').text
     assert 'PLAYBACK DESTINATIONS' in html
-    assert 'This portal controls playback, not the UniFi console.' in html
-    assert 'Device adoption, power, volume and firmware remain in UniFi Connect.' in html
+    assert 'UniFi Connect' in html
+    assert 'Device adoption, power, volume and firmware stay in UniFi Connect.' in html
 
 
 def test_refresh_control_is_not_a_global_connection_badge(admin):

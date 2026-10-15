@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS email_log (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     at         INTEGER NOT NULL,
-    message_id TEXT UNIQUE,
+    message_id TEXT,
     sender     TEXT,
     subject    TEXT,
     status     TEXT NOT NULL,
@@ -232,6 +232,8 @@ def init() -> None:
             conn.execute("ALTER TABLE users ADD COLUMN email TEXT")
         if "email_in" not in user_cols:
             conn.execute("ALTER TABLE users ADD COLUMN email_in INTEGER NOT NULL DEFAULT 0")
+        conn.execute("CREATE INDEX IF NOT EXISTS ix_email_log_msg ON email_log(message_id)")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_email ON users(lower(email)) WHERE email IS NOT NULL")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_transfer_key ON uploads(transfer_key)")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_stream_key ON streams(playback_key)")
         conn.commit()
