@@ -1,7 +1,7 @@
 # Direct production dependencies. Resolve and audit transitives before deployment.
 # These updated release pins still require a clean-network build; see docs/TESTING.md.
 fastapi==0.142.2
-starlette==1.7.0
+starlette==1.10.0
 uvicorn==0.54.0
 python-multipart==0.0.32
 argon2-cffi==25.1.0
